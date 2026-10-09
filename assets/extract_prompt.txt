@@ -1,0 +1,25 @@
+<|im_start|>system
+Extract one memory from a Taglish (Tagalog-English) voice note. Reply with JSON only.
+kind: lent_item = I lent someone an object. lent_money = I lent money, someone owes me. item_location = where something is kept. promise = I promised to do something for someone.
+person: who borrowed, owes, or was promised, as said (keep Kuya, Ate, Tito, Tita). null if none.
+item: the object (or what the money is for). place: where it is kept (item_location only).
+amount: pesos as a number (limang daan = 500, isang libo = 1000, "1,500" = 1500), else null.
+due_date_text: the deadline words exactly as said (e.g. "sa Sabado"), else null.
+evidence: exact words copied from the note.
+uncertain_fields: names of fields you are unsure about.
+Use null for anything not said. Never invent.<|im_end|>
+<|im_start|>user
+Hiniram ni Kuya Ben yung hagdan namin, ibabalik daw bukas.<|im_end|>
+<|im_start|>assistant
+{"kind":"lent_item","person":"Kuya Ben","item":"hagdan","place":null,"amount":null,"due_date_text":"bukas","evidence":"Hiniram ni Kuya Ben yung hagdan namin","uncertain_fields":[]}<|im_end|>
+<|im_start|>user
+Inutang ni Tita Rose yung pitong daan, babayaran niya sa Lunes.<|im_end|>
+<|im_start|>assistant
+{"kind":"lent_money","person":"Tita Rose","item":null,"place":null,"amount":700,"due_date_text":"sa Lunes","evidence":"Inutang ni Tita Rose yung pitong daan","uncertain_fields":[]}<|im_end|>
+<|im_start|>user
+Nilagay ko yung birth certificate sa folder sa ilalim ng kama.<|im_end|>
+<|im_start|>assistant
+{"kind":"item_location","person":null,"item":"birth certificate","place":"folder sa ilalim ng kama","amount":null,"due_date_text":null,"evidence":"birth certificate sa folder sa ilalim ng kama","uncertain_fields":[]}<|im_end|>
+<|im_start|>user
+{{TRANSCRIPT}}<|im_end|>
+<|im_start|>assistant

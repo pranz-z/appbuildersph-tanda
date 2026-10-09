@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/model_locator.dart';
 import '../../core/providers.dart';
 import '../home_shell.dart';
 import '../nav.dart';
 
-/// Shows the first-run check while models are missing or failed to load;
+/// Shows the first-run check while any model is missing or failed to load;
 /// otherwise the normal app.
 class StartupGate extends ConsumerStatefulWidget {
   const StartupGate({super.key});
@@ -20,21 +21,44 @@ class _StartupGateState extends ConsumerState<StartupGate> {
   @override
   Widget build(BuildContext context) {
     final stt = ref.watch(sttServiceProvider);
-    if (_skipped || !stt.hasError) return const HomeShell();
+    final llm = ref.watch(llmServiceProvider);
+    final e5Missing = ref.watch(embeddingFilesMissingProvider).value ?? [];
+    final problem = stt.hasError || llm.hasError || e5Missing.isNotEmpty;
+    if (_skipped || !problem) return const HomeShell();
 
     final theme = Theme.of(context);
+    Widget section(String title, AsyncValue<Object> v) => Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: theme.textTheme.titleMedium),
+          if (v.isLoading)
+            const Text('Nilo-load... / Loading')
+          else if (v.hasError)
+            SelectableText(
+              v.error.toString(),
+              style: TextStyle(color: theme.colorScheme.error),
+            )
+          else
+            const Text('OK', style: TextStyle(color: Colors.green)),
+        ],
+      ),
+    );
+
     return Scaffold(
       appBar: AppBar(title: const Text('Unang check / First-run check')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          if (stt.isLoading) ...[
-            const LinearProgressIndicator(),
-            const SizedBox(height: 8),
-            const Text('Nilo-load ang Whisper... / Loading model'),
-          ] else
+          section('Speech (Whisper)', stt),
+          section('LLM (Qwen2.5 1.5B)', llm),
+          Text('Embeddings (e5-small)', style: theme.textTheme.titleMedium),
+          if (e5Missing.isEmpty)
+            const Text('OK', style: TextStyle(color: Colors.green))
+          else
             SelectableText(
-              stt.error.toString(),
+              missingFilesMessage('Embedding model', e5Missing),
               style: TextStyle(color: theme.colorScheme.error),
             ),
           const SizedBox(height: 16),
@@ -52,7 +76,7 @@ class _StartupGateState extends ConsumerState<StartupGate> {
           const SizedBox(height: 8),
           TextButton(
             onPressed: () => setState(() => _skipped = true),
-            child: const Text('Ituloy pa rin / Continue without speech'),
+            child: const Text('Ituloy pa rin / Continue anyway'),
           ),
         ],
       ),

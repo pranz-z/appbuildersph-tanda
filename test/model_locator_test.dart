@@ -79,7 +79,9 @@ void main() {
     final s = await locator.status();
     expect(s['small-tokens.txt'], 3);
     expect(s['small-encoder.int8.onnx'], isNull);
-    expect(s.length, 6);
+    expect(s.length, modelManifest.length);
+    expect(s.containsKey('qwen2.5-1.5b-instruct-q4_k_m.gguf'), isTrue);
+    expect(s.containsKey('model_int8.onnx'), isTrue);
   });
 
   group('ModelImporter', () {

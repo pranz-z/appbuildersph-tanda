@@ -40,6 +40,11 @@ class _HomeShellState extends State<HomeShell> {
             onPressed: () => openSttDebug(context),
           ),
           IconButton(
+            tooltip: 'LLM spike (debug)',
+            icon: const Icon(Icons.psychology),
+            onPressed: () => openLlmDebug(context),
+          ),
+          IconButton(
             tooltip: 'Debug log',
             icon: const Icon(Icons.article),
             onPressed: () => openDebugLog(context),

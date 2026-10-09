@@ -1,11 +1,28 @@
-/// Local LLM. Real implementation will wrap llama.cpp (GGUF) in an isolate.
-/// It only returns raw text; parsing and validation happen in lib/logic.
+class LlmResult {
+  const LlmResult({
+    required this.text,
+    required this.elapsedMs,
+    required this.generatedTokens,
+    this.promptTokens,
+  });
+
+  final String text;
+  final int elapsedMs;
+  final int generatedTokens;
+  final int? promptTokens;
+
+  double get tokensPerSec =>
+      elapsedMs == 0 ? 0 : generatedTokens * 1000 / elapsedMs;
+}
+
+/// Local LLM. Only returns raw text; parsing and validation are plain Dart
+/// in lib/logic. Loaded once in [init], never per request.
 abstract interface class LlmService {
   Future<void> init();
 
   /// Runs one completion. When [grammar] (GBNF) is given, output is
   /// constrained to it.
-  Future<String> complete(
+  Future<LlmResult> complete(
     String prompt, {
     String? grammar,
     int maxTokens = 256,
@@ -19,19 +36,19 @@ class FakeLlmService implements LlmService {
   Future<void> init() async {}
 
   @override
-  Future<String> complete(
+  Future<LlmResult> complete(
     String prompt, {
     String? grammar,
     int maxTokens = 256,
   }) async {
     await Future<void>.delayed(const Duration(milliseconds: 300));
-    if (grammar != null) {
-      return '{"kind":"lent_item","person":"Kuya Jun","item":"drill",'
-          '"place":null,"amount":null,"due_date_text":"sa Sabado",'
-          '"evidence":"Hiniram ni Kuya Jun yung drill",'
-          '"uncertain_fields":[]}';
-    }
-    return 'Si Kuya Jun ang may hawak ng drill mo.';
+    final text = grammar != null
+        ? '{"kind":"lent_item","person":"Kuya Jun","item":"drill",'
+              '"place":null,"amount":null,"due_date_text":"sa Sabado",'
+              '"evidence":"Hiniram ni Kuya Jun yung drill",'
+              '"uncertain_fields":[]}'
+        : 'Si Kuya Jun ang may hawak ng drill mo.';
+    return LlmResult(text: text, elapsedMs: 300, generatedTokens: 40);
   }
 
   @override

@@ -36,12 +36,42 @@ List<ModelFileSpec> whisperSpecs(WhisperVariant v) {
   ];
 }
 
-/// Every file the app accepts on import. LLM (GGUF) and e5 files get added
-/// here once they are chosen.
+const llmSpec = ModelFileSpec(
+  'qwen2.5-1.5b-instruct-q4_k_m.gguf',
+  'LLM: Qwen2.5 1.5B Instruct Q4_K_M',
+  'https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/'
+      'qwen2.5-1.5b-instruct-q4_k_m.gguf',
+);
+
+const _hfE5 =
+    'https://huggingface.co/Xenova/multilingual-e5-small/resolve/main';
+const embeddingSpecs = [
+  ModelFileSpec(
+    'model_int8.onnx',
+    'Embeddings: multilingual-e5-small int8',
+    '$_hfE5/onnx/model_int8.onnx',
+  ),
+  ModelFileSpec(
+    'tokenizer.json',
+    'Embeddings: multilingual-e5-small int8',
+    '$_hfE5/tokenizer.json',
+  ),
+];
+
+/// Every file the app accepts on import.
 final modelManifest = <ModelFileSpec>[
   ...whisperSpecs(WhisperVariant.small),
   ...whisperSpecs(WhisperVariant.base),
+  llmSpec,
+  ...embeddingSpecs,
 ];
+
+String missingFilesMessage(String what, List<ModelFileSpec> missing) {
+  final list = missing.map((s) => '  - ${s.name}\n    ${s.url}').join('\n');
+  return 'Kulang ang $what files. / $what files are missing.\n\n'
+      'Download these into the phone\'s Downloads folder:\n$list\n\n'
+      'Then tap "Import models" and select them.';
+}
 
 class WhisperPaths {
   const WhisperPaths({
@@ -67,13 +97,9 @@ class WhisperCheck {
 
   bool get ok => paths != null;
 
-  String get errorMessage {
-    final list = missing.map((s) => '  - ${s.name}\n    ${s.url}').join('\n');
-    return 'Kulang ang Whisper model files. / Whisper model files are missing.\n\n'
-        'Download these into the phone\'s Downloads folder:\n$list\n\n'
-        'Then tap "Import models" and select them.\n'
-        '(Whisper base files work too, as a smaller fallback.)';
-  }
+  String get errorMessage =>
+      '${missingFilesMessage('Whisper model', missing)}\n'
+      '(Whisper base files work too, as a smaller fallback.)';
 }
 
 /// Finds model files. Models are never bundled in the APK; they are imported
@@ -132,11 +158,23 @@ class ModelLocator {
         );
       }
     }
-    final missing = <ModelFileSpec>[];
-    for (final s in whisperSpecs(WhisperVariant.small)) {
-      if (await find(s.name) == null) missing.add(s);
+    return WhisperCheck(
+      missing: await missingOf(whisperSpecs(WhisperVariant.small)),
+    );
+  }
+
+  Future<List<ModelFileSpec>> missingOf(List<ModelFileSpec> specs) async => [
+    for (final s in specs)
+      if (await find(s.name) == null) s,
+  ];
+
+  /// Path of the GGUF, or throws [ModelMissingException].
+  Future<String> requireLlm() async {
+    final f = await find(llmSpec.name);
+    if (f == null) {
+      throw ModelMissingException(missingFilesMessage('LLM model', [llmSpec]));
     }
-    return WhisperCheck(missing: missing);
+    return f.path;
   }
 }
 

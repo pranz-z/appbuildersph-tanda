@@ -25,8 +25,15 @@ The app uses no network at runtime and does not download anything itself. Downlo
 | `base-encoder.int8.onnx` (29 MB, optional fallback) | https://huggingface.co/csukuangfj/sherpa-onnx-whisper-base/resolve/main/base-encoder.int8.onnx |
 | `base-decoder.int8.onnx` (131 MB, optional fallback) | https://huggingface.co/csukuangfj/sherpa-onnx-whisper-base/resolve/main/base-decoder.int8.onnx |
 | `base-tokens.txt` (optional fallback) | https://huggingface.co/csukuangfj/sherpa-onnx-whisper-base/resolve/main/base-tokens.txt |
+| `qwen2.5-1.5b-instruct-q4_k_m.gguf` (1.12 GB, LLM) | https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf |
+| `model_int8.onnx` (118 MB, embeddings) | https://huggingface.co/Xenova/multilingual-e5-small/resolve/main/onnx/model_int8.onnx |
+| `tokenizer.json` (17 MB, embeddings) | https://huggingface.co/Xenova/multilingual-e5-small/resolve/main/tokenizer.json |
+
+Total for everything (with the base fallback): about 1.8 GB. Make sure the phone has at least ~2 GB free during import (picked files are moved, not duplicated, but the source copies stay in Downloads until you delete them).
 
 Then in the app: **Import models** (shown on first run, or from the debug screen) > select the files (long-press to multi-select). The checklist shows which files are present. Files keep their exact names; browser duplicates like `small-tokens (1).txt` are accepted. Models are stored in the app's private internal storage (no storage permission needed).
+
+The LLM prompt and grammar are plain text in `assets/extract_prompt.txt` and `assets/extract.gbnf` (rebuild after editing). `dart run tool/llm_desktop_check.dart <path-to-gguf>` runs the 15 test sentences on a laptop to check JSON validity (laptop timings are not phone measurements).
 
 **Optional alternative (adb):** push the files to `/sdcard/Android/data/ph.tanda.app/files/models/` and restart the app. Run the app once first so the folder exists.
 

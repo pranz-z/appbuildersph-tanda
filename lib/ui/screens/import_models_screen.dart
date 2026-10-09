@@ -108,8 +108,14 @@ class _ImportModelsScreenState extends ConsumerState<ImportModelsScreen> {
         appLog.e('clearTemporaryFiles failed', e);
       }
       await _refresh();
-      // Reload Whisper with the new files.
-      ref.invalidate(sttServiceProvider);
+      // Reload models that were missing or failed. Already-loaded ones stay.
+      if (ref.read(sttServiceProvider).hasError) {
+        ref.invalidate(sttServiceProvider);
+      }
+      if (ref.read(llmServiceProvider).hasError) {
+        ref.invalidate(llmServiceProvider);
+      }
+      ref.invalidate(embeddingFilesMissingProvider);
       if (mounted) setState(() => _importing = false);
     }
   }

@@ -1,11 +1,15 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../services/audio/recorder_service.dart';
 import '../services/embedding/embedding_service.dart';
+import '../services/llm/extractor.dart';
+import '../services/llm/llamadart_llm_service.dart';
 import '../services/llm/llm_service.dart';
 import '../services/stt/sherpa_whisper_stt_service.dart';
 import '../services/stt/stt_service.dart';
 import 'app_log.dart';
+import 'memory_info.dart';
 import 'model_locator.dart';
 
 final modelLocatorProvider = Provider((ref) => ModelLocator());
@@ -55,8 +59,49 @@ final recorderServiceProvider = Provider((ref) {
   return r;
 });
 
-// Swap Fake* for real implementations here once each spike passes.
-final llmServiceProvider = Provider<LlmService>((ref) => FakeLlmService());
+/// Real LLM (llama.cpp via llamadart), loaded once at app start and kept
+/// alive. Importing models reloads it. Errors surface to the UI, no retry.
+final llmServiceProvider = FutureProvider<LlmService>((ref) async {
+  final String path;
+  try {
+    path = await ref.read(modelLocatorProvider).requireLlm();
+  } on ModelMissingException {
+    appLog.i('LLM missing: ${llmSpec.name}');
+    rethrow;
+  }
+  final llm = LlamadartLlmService(path);
+  ref.onDispose(llm.dispose);
+  appLog.i(
+    'Loading LLM ${llmSpec.name}, threads=${llm.numThreads}, '
+    'ctx=${llm.contextSize}, cpu only',
+  );
+  try {
+    await llm.init();
+  } catch (e, st) {
+    appLog.e('LLM init failed', e, st);
+    rethrow;
+  }
+  appLog.i(
+    'LLM loaded in ${llm.loadMs} ms; memory: ${residentMemorySummary()}',
+  );
+  return llm;
+}, retry: (_, _) => null);
+
+final extractorProvider = FutureProvider<Extractor>((ref) async {
+  final llm = await ref.watch(llmServiceProvider.future);
+  return Extractor(
+    llm,
+    promptTemplate: await rootBundle.loadString('assets/extract_prompt.txt'),
+    grammar: await rootBundle.loadString('assets/extract.gbnf'),
+  );
+}, retry: (_, _) => null);
+
+/// Embedding model files (not loaded yet; checked so the first-run screen
+/// can list them).
+final embeddingFilesMissingProvider = FutureProvider<List<ModelFileSpec>>(
+  (ref) => ref.read(modelLocatorProvider).missingOf(embeddingSpecs),
+);
+
 final embeddingServiceProvider = Provider<EmbeddingService>(
   (ref) => FakeEmbeddingService(),
 );

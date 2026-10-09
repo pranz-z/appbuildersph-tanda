@@ -14,7 +14,10 @@ Kept current during the build. Everything here was added during the hackathon wi
 | OpenAI Whisper small (int8 ONNX export by sherpa-onnx / k2-fsa) | `small-encoder.int8.onnx`, `small-decoder.int8.onnx`, `small-tokens.txt` | https://huggingface.co/csukuangfj/sherpa-onnx-whisper-small (also in https://github.com/k2-fsa/sherpa-onnx/releases/tag/asr-models) | Whisper: MIT (OpenAI) |
 | Fallback: Whisper base (same export) | `base-encoder.int8.onnx`, `base-decoder.int8.onnx`, `base-tokens.txt` | https://huggingface.co/csukuangfj/sherpa-onnx-whisper-base | MIT |
 
-Still planned: 1.5B to 2B instruct Q4 GGUF (llama.cpp), multilingual-e5-small int8 (ONNX).
+| Qwen2.5-1.5B-Instruct, Q4_K_M GGUF (official Qwen quantization) | `qwen2.5-1.5b-instruct-q4_k_m.gguf` (1,117,320,736 bytes) | https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF | Apache-2.0 |
+| multilingual-e5-small (intfloat), int8 ONNX export by Xenova | `model_int8.onnx` (118,054,593 bytes), `tokenizer.json` | https://huggingface.co/Xenova/multilingual-e5-small (original: https://huggingface.co/intfloat/multilingual-e5-small) | MIT (original model card); Xenova repo carries no separate license tag |
+
+e5 files are imported and checked but not yet loaded by the app (embedding phase pending).
 
 Models are not in the APK. The user downloads them once (e.g. into the phone's Downloads folder) and imports them with the in-app file picker ("Import models"). The app itself makes no network request to fetch them. adb push is an optional alternative.
 
@@ -35,6 +38,7 @@ Models are not in the APK. The user downloads them once (e.g. into the phone's D
 | uuid | 4.6.0 | Stable `uid` per memory |
 | path | 1.9.1 | Path joining |
 | file_picker | 13.1.0 | System file picker for importing model files (no network) |
+| llamadart | 0.10.0 | llama.cpp binding (GGUF inference with GBNF grammar, in a worker isolate). Its build hook downloads prebuilt llama.cpp binaries from https://github.com/leehack/llamadart-native at **build time only**; configured for Android arm64 CPU backend only. MIT. |
 | drift_dev (dev) | 2.35.1 | drift code generation |
 | build_runner (dev) | 2.16.1 | Code generation runner |
 | flutter_lints (dev) | 6.0.0 | Lints (Flutter template default) |

@@ -2,16 +2,20 @@ import 'package:flutter/material.dart';
 
 import 'screens/debug_log_screen.dart';
 import 'screens/import_models_screen.dart';
+import 'screens/llm_debug_screen.dart';
 import 'screens/stt_debug_screen.dart';
 
+void _push(BuildContext context, Widget screen) =>
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
+
 void openImportModels(BuildContext context) =>
-    Navigator.of(context)
-        .push(MaterialPageRoute(builder: (_) => const ImportModelsScreen()));
+    _push(context, const ImportModelsScreen());
 
 void openDebugLog(BuildContext context) =>
-    Navigator.of(context)
-        .push(MaterialPageRoute(builder: (_) => const DebugLogScreen()));
+    _push(context, const DebugLogScreen());
 
 void openSttDebug(BuildContext context) =>
-    Navigator.of(context)
-        .push(MaterialPageRoute(builder: (_) => const SttDebugScreen()));
+    _push(context, const SttDebugScreen());
+
+void openLlmDebug(BuildContext context) =>
+    _push(context, const LlmDebugScreen());

@@ -1,0 +1,15 @@
+# Extraction schema (TANDA_SPEC.md section 8.1). Fixed key order, compact JSON.
+root ::= "{" "\"kind\":" kind "," "\"person\":" nstring "," "\"item\":" nstring "," "\"place\":" nstring "," "\"amount\":" nnumber "," "\"due_date_text\":" nstring "," "\"evidence\":" string "," "\"uncertain_fields\":" fields "}"
+
+kind ::= "\"lent_item\"" | "\"lent_money\"" | "\"item_location\"" | "\"promise\""
+
+nstring ::= string | "null"
+nnumber ::= number | "null"
+
+string ::= "\"" char* "\""
+char ::= [^"\\\x00-\x1F] | "\\" ["\\/bfnrt]
+
+number ::= "-"? [0-9]+ ("." [0-9]+)?
+
+fields ::= "[" ( field ( "," field )* )? "]"
+field ::= "\"" ( "kind" | "person" | "item" | "place" | "amount" | "due_date_text" | "evidence" ) "\""

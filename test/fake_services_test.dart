@@ -12,7 +12,7 @@ void main() {
 
   test('fake LLM returns parseable JSON when a grammar is given', () async {
     final out = await FakeLlmService().complete('p', grammar: 'root ::= x');
-    expect((jsonDecode(out) as Map)['kind'], 'lent_item');
+    expect((jsonDecode(out.text) as Map)['kind'], 'lent_item');
   });
 
   test('fake embeddings are deterministic unit vectors', () async {
