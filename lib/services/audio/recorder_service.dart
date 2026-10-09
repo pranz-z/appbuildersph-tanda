@@ -9,7 +9,8 @@ class RecorderService {
   final _recorder = AudioRecorder();
   Future<void>? _starting;
 
-  Future<bool> ensurePermission() => _recorder.hasPermission();
+  Future<bool> hasPermission({bool request = true}) =>
+      _recorder.hasPermission(request: request);
 
   Future<String> clipsDir() async {
     final docs = await getApplicationDocumentsDirectory();

@@ -3,6 +3,7 @@ import 'dart:isolate';
 
 import 'package:sherpa_onnx/sherpa_onnx.dart' as sherpa;
 
+import '../../core/app_log.dart';
 import '../../core/model_locator.dart';
 import 'stt_service.dart';
 
@@ -13,6 +14,7 @@ class SherpaWhisperSttService implements SttService {
     this.paths, {
     this.language = 'tl',
     this.numThreads = 4,
+    this.loadTimeout = const Duration(minutes: 3),
   });
 
   final WhisperPaths paths;
@@ -20,6 +22,7 @@ class SherpaWhisperSttService implements SttService {
   /// Whisper language code. '' = auto-detect.
   final String language;
   final int numThreads;
+  final Duration loadTimeout;
 
   Isolate? _isolate;
   ReceivePort? _fromIsolate;
@@ -37,48 +40,98 @@ class SherpaWhisperSttService implements SttService {
     _fromIsolate = rp;
     final ready = Completer<void>();
 
+    void fail(Object error) {
+      if (!ready.isCompleted) ready.completeError(error);
+      for (final c in _pending.values) {
+        c.completeError(error);
+      }
+      _pending.clear();
+      _toIsolate = null;
+    }
+
     rp.listen((msg) {
+      if (msg == null) {
+        // onExit: the isolate died.
+        fail(StateError('Whisper isolate exited unexpectedly'));
+        return;
+      }
+      if (msg is List) {
+        // onError: uncaught error inside the isolate [error, stack].
+        appLog.e(
+          'Whisper isolate uncaught error',
+          msg[0],
+          StackTrace.fromString('${msg[1]}'),
+        );
+        fail(StateError('Whisper isolate error: ${msg[0]}'));
+        return;
+      }
       final m = msg as Map;
       if (m.containsKey('ready')) {
         _toIsolate = m['ready'] as SendPort;
         loadMs = m['loadMs'] as int;
         ready.complete();
       } else if (m.containsKey('initError')) {
-        ready.completeError(
-          StateError('Whisper load failed: ${m['initError']}'),
+        appLog.e(
+          'Whisper load failed',
+          m['initError'],
+          StackTrace.fromString('${m['stack']}'),
         );
+        fail(StateError('Whisper load failed: ${m['initError']}'));
       } else {
         final c = _pending.remove(m['id'] as int);
         if (c == null) return;
         if (m.containsKey('error')) {
+          appLog.e(
+            'Transcribe failed',
+            m['error'],
+            StackTrace.fromString('${m['stack']}'),
+          );
           c.completeError(StateError(m['error'] as String));
         } else {
-          c.complete(
-            SttResult(
-              text: m['text'] as String,
-              elapsedMs: m['ms'] as int,
-              audioMs: m['audioMs'] as int,
-            ),
+          final r = SttResult(
+            text: m['text'] as String,
+            elapsedMs: m['ms'] as int,
+            audioMs: m['audioMs'] as int,
           );
+          appLog.i(
+            'STT run: audio ${r.audioMs} ms, transcribe ${r.elapsedMs} ms, '
+            'text="${r.text}"',
+          );
+          c.complete(r);
         }
       }
     });
 
-    _isolate = await Isolate.spawn(_sttIsolateMain, {
-      'reply': rp.sendPort,
-      'encoder': paths.encoder,
-      'decoder': paths.decoder,
-      'tokens': paths.tokens,
-      'language': language,
-      'numThreads': numThreads,
-    }, debugName: 'stt');
-    await ready.future;
+    _isolate = await Isolate.spawn(
+      _sttIsolateMain,
+      {
+        'reply': rp.sendPort,
+        'encoder': paths.encoder,
+        'decoder': paths.decoder,
+        'tokens': paths.tokens,
+        'language': language,
+        'numThreads': numThreads,
+      },
+      debugName: 'stt',
+      onError: rp.sendPort,
+      onExit: rp.sendPort,
+    );
+    try {
+      await ready.future.timeout(loadTimeout);
+    } on TimeoutException {
+      await dispose();
+      throw StateError(
+        'Whisper load timed out after ${loadTimeout.inSeconds} s',
+      );
+    }
   }
 
   @override
   Future<SttResult> transcribeFile(String wavPath) {
     final port = _toIsolate;
-    if (port == null) throw StateError('SttService not initialized');
+    if (port == null) {
+      return Future.error(StateError('SttService not ready'));
+    }
     final id = _nextId++;
     final c = Completer<SttResult>();
     _pending[id] = c;
@@ -88,8 +141,8 @@ class SherpaWhisperSttService implements SttService {
 
   @override
   Future<void> dispose() async {
-    _isolate?.kill(priority: Isolate.immediate);
     _fromIsolate?.close();
+    _isolate?.kill(priority: Isolate.immediate);
     _isolate = null;
     _toIsolate = null;
     for (final c in _pending.values) {
@@ -121,8 +174,8 @@ void _sttIsolateMain(Map<String, Object> args) {
         ),
       ),
     );
-  } catch (e) {
-    reply.send({'initError': e.toString()});
+  } catch (e, st) {
+    reply.send({'initError': e.toString(), 'stack': st.toString()});
     return;
   }
 
@@ -147,8 +200,8 @@ void _sttIsolateMain(Map<String, Object> args) {
         'ms': t.elapsedMilliseconds,
         'audioMs': wave.samples.length * 1000 ~/ wave.sampleRate,
       });
-    } catch (e) {
-      reply.send({'id': id, 'error': e.toString()});
+    } catch (e, st) {
+      reply.send({'id': id, 'error': e.toString(), 'stack': st.toString()});
     }
   });
 }

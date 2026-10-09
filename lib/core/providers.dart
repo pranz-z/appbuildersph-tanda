@@ -5,6 +5,7 @@ import '../services/embedding/embedding_service.dart';
 import '../services/llm/llm_service.dart';
 import '../services/stt/sherpa_whisper_stt_service.dart';
 import '../services/stt/stt_service.dart';
+import 'app_log.dart';
 import 'model_locator.dart';
 
 final modelLocatorProvider = Provider((ref) => ModelLocator());
@@ -21,15 +22,30 @@ final sttLanguageProvider = NotifierProvider<SttLanguage, String>(
   SttLanguage.new,
 );
 
-/// Real Whisper STT, loaded once and kept alive. Changing the language
-/// reloads it (debug only). Missing models surface as an error, no retries.
+/// Real Whisper STT, loaded once and kept alive. Changing the language or
+/// importing models reloads it. Errors surface to the UI, no auto-retry.
 final sttServiceProvider = FutureProvider<SttService>((ref) async {
   final language = ref.watch(sttLanguageProvider);
   final check = await ref.read(modelLocatorProvider).checkWhisper();
-  if (!check.ok) throw ModelMissingException(check.errorMessage);
-  final stt = SherpaWhisperSttService(check.paths!, language: language);
+  if (!check.ok) {
+    appLog.i('Whisper missing: ${check.missing.map((s) => s.name).join(', ')}');
+    throw ModelMissingException(check.errorMessage);
+  }
+  final paths = check.paths!;
+  final stt = SherpaWhisperSttService(paths, language: language);
   ref.onDispose(stt.dispose);
-  await stt.init();
+  appLog.i(
+    'Loading Whisper ${paths.variant.name} int8, '
+    'lang=${language.isEmpty ? 'auto' : language}, '
+    'threads=${stt.numThreads}, encoder=${paths.encoder}',
+  );
+  try {
+    await stt.init();
+  } catch (e, st) {
+    appLog.e('Whisper init failed', e, st);
+    rethrow;
+  }
+  appLog.i('Whisper loaded in ${stt.loadMs} ms');
   return stt;
 }, retry: (_, _) => null);
 

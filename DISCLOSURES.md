@@ -16,6 +16,8 @@ Kept current during the build. Everything here was added during the hackathon wi
 
 Still planned: 1.5B to 2B instruct Q4 GGUF (llama.cpp), multilingual-e5-small int8 (ONNX).
 
+Models are not in the APK. The user downloads them once (e.g. into the phone's Downloads folder) and imports them with the in-app file picker ("Import models"). The app itself makes no network request to fetch them. adb push is an optional alternative.
+
 ## Flutter / Dart packages (exact pinned versions)
 
 | Package | Version | Purpose |
@@ -32,6 +34,7 @@ Still planned: 1.5B to 2B instruct Q4 GGUF (llama.cpp), multilingual-e5-small in
 | wakelock_plus | 1.8.1 | Keeps screen awake during demo |
 | uuid | 4.6.0 | Stable `uid` per memory |
 | path | 1.9.1 | Path joining |
+| file_picker | 13.1.0 | System file picker for importing model files (no network) |
 | drift_dev (dev) | 2.35.1 | drift code generation |
 | build_runner (dev) | 2.16.1 | Code generation runner |
 | flutter_lints (dev) | 6.0.0 | Lints (Flutter template default) |

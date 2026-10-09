@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/app_log.dart';
 import '../../core/providers.dart';
 import '../../services/stt/sherpa_whisper_stt_service.dart';
 import '../../services/stt/stt_service.dart';
+import '../nav.dart';
 
 /// TEMPORARY spike screen for go/no-go item 1 (speech). Remove after the spike.
 class SttDebugScreen extends ConsumerStatefulWidget {
@@ -30,8 +32,14 @@ class _SttDebugScreenState extends ConsumerState<SttDebugScreen> {
   Future<void> _down(SttService stt) async {
     if (_busy || _recording) return;
     final rec = ref.read(recorderServiceProvider);
-    if (!await rec.ensurePermission()) {
-      setState(() => _error = 'Microphone permission denied.');
+    if (!await rec.hasPermission(request: false)) {
+      // The permission dialog steals the pointer-up, so don't start now.
+      final granted = await rec.hasPermission(request: true);
+      setState(
+        () => _error = granted
+            ? 'Mic allowed. Hold the button again.'
+            : 'Microphone permission denied.',
+      );
       return;
     }
     setState(() {
@@ -41,7 +49,17 @@ class _SttDebugScreenState extends ConsumerState<SttDebugScreen> {
     _hold
       ..reset()
       ..start();
-    await rec.start();
+    try {
+      await rec.start();
+    } catch (e, st) {
+      appLog.e('Recorder start failed', e, st);
+      if (mounted) {
+        setState(() {
+          _recording = false;
+          _error = e.toString();
+        });
+      }
+    }
   }
 
   Future<void> _up(SttService stt) async {
@@ -59,7 +77,8 @@ class _SttDebugScreenState extends ConsumerState<SttDebugScreen> {
       }
       final r = await stt.transcribeFile(path);
       _runs.insert(0, _Run(_runs.length + 1, r));
-    } catch (e) {
+    } catch (e, st) {
+      appLog.e('Hold-to-talk run failed', e, st);
       _error = e.toString();
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -100,9 +119,20 @@ class _SttDebugScreenState extends ConsumerState<SttDebugScreen> {
             icon: const Icon(Icons.copy),
             onPressed: _runs.isEmpty ? null : _copyAll,
           ),
+          IconButton(
+            tooltip: 'Import models',
+            icon: const Icon(Icons.file_open),
+            onPressed: () => openImportModels(context),
+          ),
+          IconButton(
+            tooltip: 'Debug log',
+            icon: const Icon(Icons.article),
+            onPressed: () => openDebugLog(context),
+          ),
         ],
       ),
       body: sttAsync.when(
+        skipLoadingOnRefresh: false,
         loading: () => const Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -113,12 +143,26 @@ class _SttDebugScreenState extends ConsumerState<SttDebugScreen> {
             ],
           ),
         ),
-        error: (e, _) => SingleChildScrollView(
+        error: (e, _) => ListView(
           padding: const EdgeInsets.all(16),
-          child: SelectableText(
-            e.toString(),
-            style: TextStyle(color: theme.colorScheme.error),
-          ),
+          children: [
+            SelectableText(
+              e.toString(),
+              style: TextStyle(color: theme.colorScheme.error),
+            ),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: () => openImportModels(context),
+              icon: const Icon(Icons.file_open),
+              label: const Text('Import models'),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: () => openDebugLog(context),
+              icon: const Icon(Icons.article),
+              label: const Text('Debug log'),
+            ),
+          ],
         ),
         data: (stt) => Column(
           children: [

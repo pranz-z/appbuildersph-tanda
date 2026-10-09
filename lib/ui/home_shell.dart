@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'nav.dart';
 import 'screens/placeholder_screen.dart';
-import 'screens/stt_debug_screen.dart';
 import 'widgets/locality_meter_bar.dart';
 
 class HomeShell extends StatefulWidget {
@@ -37,9 +37,12 @@ class _HomeShellState extends State<HomeShell> {
           IconButton(
             tooltip: 'STT spike (debug)',
             icon: const Icon(Icons.bug_report),
-            onPressed: () => Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const SttDebugScreen())),
+            onPressed: () => openSttDebug(context),
+          ),
+          IconButton(
+            tooltip: 'Debug log',
+            icon: const Icon(Icons.article),
+            onPressed: () => openDebugLog(context),
           ),
         ],
       ),
