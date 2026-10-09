@@ -4,6 +4,18 @@ A voice-first Taglish memory for hiram, utang, and "nasaan ko nilagay". Runs ent
 
 Current implementation differences and incomplete requirements are recorded in `SPEC_DEVIATIONS.md`. Retrieval currently uses local structured matching; the embedding runtime is not connected.
 
+## Why local
+
+Voice notes about who owes you money, borrowed things, and where valuables are kept are private by nature. Tanda keeps all of it on the phone: speech recognition, LLM extraction, storage, and retrieval run locally, so the app works in airplane mode — brownouts, basements, weak signal — with no per-request cost and no server that could leak your home life. The device that hears the note is the device that remembers it. Session traffic and on-device counters can be inspected under **Settings → Diagnostics → Session diagnostics**.
+
+## What runs on the phone vs. the internet
+
+**On-device:** Whisper speech-to-text (sherpa-onnx), LLM extraction/cleanup (Qwen2.5-1.5B Q4_K_M via llama.cpp/llamadart with a GBNF grammar), SQLite storage (drift), structured retrieval, all answer and reminder phrasing (code templates), audio recording and playback.
+
+**Uses the internet:** only the optional, user-started **Download models** flow (Hugging Face, once at setup). Manual import, recording, transcription, extraction, asking, and reminders all work with airplane mode on.
+
+**Honest gap:** the e5 embedding files are part of the download set and the first-run presence check, but the embedding runtime is not wired in this build. Retrieval is structured matching over confirmed fields, evidence, and transcripts; answers are built by code templates, never generated. A missing e5 file shows a non-blocking notice on the first-run check ("Continue anyway"). See `SPEC_DEVIATIONS.md`.
+
 ## Build
 
 Requires Flutter 3.47.x. Target: arm64 Android phone, Android 7.0+ (minSdk 24).
@@ -19,7 +31,7 @@ Output: `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk` (signed with t
 
 Models are never bundled in the APK. There are two ways to get them onto the phone; both put the files in the app's private storage (no storage permission) and the app treats them identically (a file only counts as present if its size matches the table below).
 
-**Option A, in-app download (needs internet once):** on the first-run check tap **Download models**. Nothing downloads until you tap the Download button, which shows the total size. Only missing or incomplete files are fetched, one at a time, with per-file and overall progress. Cancel at any time; if you cancel, close the app or lose the connection, tap Download again to resume from the saved `.part` file (HTTP Range). Each file is checked for its exact size and, where Hugging Face publishes one, its SHA-256 before it is marked ready. The required set (Whisper small, LLM, e5) is about 1.63 GB; keep ~1.8 GB free.
+**Option A, in-app download (needs internet once):** on the first-run check tap **Download models**. Nothing downloads until you tap the Download button, which shows the total size. Only missing or incomplete files are fetched, one at a time, with per-file and overall progress. Cancel at any time; if you cancel, close the app or lose the connection, tap Download again to resume from the saved `.part` file (HTTP Range). Each file is checked for its exact size and, where Hugging Face publishes one, its SHA-256 before it is marked ready. The required set (Whisper small, LLM, e5) is about 1.63 GB; keep ~1.8 GB free. The e5 files are fetched for the planned semantic retrieval but are not used by this build.
 
 **Option B, manual import (no internet in the app):** download the files below into **Downloads** (browser or laptop), then tap **Import models** and select them (long-press to multi-select). Browser duplicates like `small-tokens (1).txt` are accepted.
 
