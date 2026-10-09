@@ -2,6 +2,8 @@
 
 A voice-first Taglish memory for hiram, utang, and "nasaan ko nilagay". Runs entirely on an Android phone. See `TANDA_SPEC.md`.
 
+Current implementation differences and incomplete requirements are recorded in `SPEC_DEVIATIONS.md`. Retrieval currently uses local structured matching; the embedding runtime is not connected.
+
 ## Build
 
 Requires Flutter 3.47.x. Target: arm64 Android phone, Android 7.0+ (minSdk 24).
@@ -45,7 +47,7 @@ The LLM prompt and grammar are plain text in `assets/extract_prompt.txt` and `as
 
 ## Debugging without logcat
 
-The **Debug log** screen (article icon in the top bar) shows model load time, thread count, each transcription, and any error with stack trace. Tap **Copy** to paste it elsewhere. The previous session's log is kept, so a crash is visible on the next launch.
+Open **Settings → Diagnostics → Debug log** for model loading, capture/transcription metadata, and errors with stack traces. Tap **Copy** to paste it elsewhere. The previous session's log is kept, so a crash is visible on the next launch. Session traffic and inference counters are under **Session diagnostics**, rather than a persistent footer. Review diagnostic exports before sharing; batch reports can include extracted fields.
 
 ## Phone setup: vivo / Funtouch OS (do this before any demo)
 

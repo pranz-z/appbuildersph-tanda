@@ -1,10 +1,12 @@
+import '../localization.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/model_locator.dart';
 import '../../core/providers.dart';
 import '../home_shell.dart';
 import '../nav.dart';
+import '../notebook_theme.dart';
 
 /// Shows the first-run check while any model is missing or failed to load;
 /// otherwise the normal app.
@@ -32,57 +34,77 @@ class _StartupGateState extends ConsumerState<StartupGate> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: theme.textTheme.titleMedium),
+          UiText(title, style: theme.textTheme.titleMedium),
           if (v.isLoading)
-            const Text('Nilo-load... / Loading')
+            const UiText('Nilo-load... / Loading')
           else if (v.hasError)
-            SelectableText(
-              v.error.toString(),
+            UiText(
+              'Models are not ready. Check setup or use typed entry.',
               style: TextStyle(color: theme.colorScheme.error),
             )
           else
-            const Text('OK', style: TextStyle(color: Colors.green)),
+            UiText(
+              'OK',
+              style: TextStyle(color: Theme.of(context).colorScheme.primary),
+            ),
         ],
       ),
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Unang check / First-run check')),
+      appBar: AppBar(
+        title: const Text('tanda.'),
+        actions: [
+          IconButton(
+            tooltip: tr(context, 'Settings'),
+            icon: const Icon(Icons.tune),
+            onPressed: () => openSettings(context),
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          const NotebookHeader(
+            title: 'Unang check / First-run check',
+            subtitle: 'Your memories stay on this device.',
+            icon: Icons.menu_book_outlined,
+          ),
           section('Speech (Whisper)', stt),
           section('LLM (Qwen2.5 1.5B)', llm),
-          Text('Embeddings (e5-small)', style: theme.textTheme.titleMedium),
+          UiText('Embeddings (e5-small)', style: theme.textTheme.titleMedium),
           if (e5Missing.isEmpty)
-            const Text('OK', style: TextStyle(color: Colors.green))
+            UiText(
+              'OK',
+              style: TextStyle(color: Theme.of(context).colorScheme.primary),
+            )
           else
-            SelectableText(
-              missingFilesMessage('Embedding model', e5Missing),
+            UiText(
+              'Embedding files are missing. Download or import the model files.',
               style: TextStyle(color: theme.colorScheme.error),
             ),
           const SizedBox(height: 16),
           FilledButton.icon(
             onPressed: () => openDownloadModels(context),
             icon: const Icon(Icons.download),
-            label: const Text('Download models (needs internet once)'),
+            label: const UiText('Download models (needs internet once)'),
           ),
           const SizedBox(height: 8),
           FilledButton.tonalIcon(
             onPressed: () => openImportModels(context),
             icon: const Icon(Icons.file_open),
-            label: const Text('Import models'),
+            label: const UiText('Import models'),
           ),
           const SizedBox(height: 8),
           OutlinedButton.icon(
             onPressed: () => openDebugLog(context),
             icon: const Icon(Icons.article),
-            label: const Text('Debug log'),
+            label: const UiText('Debug log'),
           ),
           const SizedBox(height: 8),
           TextButton(
             onPressed: () => setState(() => _skipped = true),
-            child: const Text('Ituloy pa rin / Continue anyway'),
+            child: const UiText('Ituloy pa rin / Continue anyway'),
           ),
         ],
       ),

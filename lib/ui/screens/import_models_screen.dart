@@ -1,3 +1,5 @@
+import '../localization.dart';
+
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
@@ -11,6 +13,7 @@ import '../../core/model_importer.dart';
 import '../../core/model_locator.dart';
 import '../../core/providers.dart';
 import '../nav.dart';
+import '../notebook_theme.dart';
 
 /// Imports sideloaded model files from the phone (e.g. Downloads) via the
 /// system file picker. No network.
@@ -145,11 +148,16 @@ class _ImportModelsScreenState extends ConsumerState<ImportModelsScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Import models')),
+      appBar: AppBar(title: const UiText('Import models')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const Text(
+          const NotebookHeader(
+            title: 'Import models',
+            subtitle: 'Use model files already on your phone.',
+            icon: Icons.folder_open_outlined,
+          ),
+          const UiText(
             'Download the model files into Downloads, then tap the button '
             'and select them. Long-press a file in the picker to select '
             'several at once.\n'
@@ -159,24 +167,24 @@ class _ImportModelsScreenState extends ConsumerState<ImportModelsScreen> {
           FilledButton.icon(
             onPressed: _importing ? null : _pick,
             icon: const Icon(Icons.file_open),
-            label: const Text('Pumili ng files / Select files'),
+            label: const UiText('Pumili ng files / Select files'),
           ),
           TextButton.icon(
             onPressed: _importing ? null : () => openDownloadModels(context),
             icon: const Icon(Icons.download),
-            label: const Text('Or download them in the app (needs internet)'),
+            label: const UiText('Or download them in the app (needs internet)'),
           ),
           if (_picking) ...[
             const SizedBox(height: 12),
             const LinearProgressIndicator(),
-            const Text(
+            const UiText(
               'Kinukuha ang files... / Picker is reading the files '
               '(large files take a while)',
             ),
           ],
           for (final e in groups.entries) ...[
             const SizedBox(height: 16),
-            Text(e.key, style: theme.textTheme.titleMedium),
+            UiText(e.key, style: theme.textTheme.titleMedium),
             for (final s in e.value) _fileRow(s, theme),
           ],
           if (_messages.isNotEmpty) ...[
@@ -184,7 +192,7 @@ class _ImportModelsScreenState extends ConsumerState<ImportModelsScreen> {
             for (final m in _messages)
               Padding(
                 padding: const EdgeInsets.only(bottom: 6),
-                child: Text(
+                child: UiText(
                   m,
                   style: TextStyle(
                     color: m.startsWith('OK')
@@ -206,12 +214,12 @@ class _ImportModelsScreenState extends ConsumerState<ImportModelsScreen> {
       contentPadding: EdgeInsets.zero,
       leading: Icon(
         size != null ? Icons.check_circle : Icons.radio_button_unchecked,
-        color: size != null ? Colors.green : theme.disabledColor,
+        color: size != null ? theme.colorScheme.primary : theme.disabledColor,
       ),
       title: Text(s.name),
       subtitle: progress != null && progress < 1
           ? LinearProgressIndicator(value: progress)
-          : Text(
+          : UiText(
               size != null
                   ? 'Nandito / Present · ${(size / 1e6).toStringAsFixed(1)} MB'
                   : 'Wala pa / Missing',

@@ -1,11 +1,13 @@
 # Disclosures
 
-Kept current during the build. Everything here was added during the hackathon window (Oct 9, 2:30 PM to Oct 10, 10:00 AM).
+Updated against the current working checkout; see `SPEC_DEVIATIONS.md`. Commit timestamps do not establish creation dates for all untracked code and assets. The team must confirm build-window and provenance disclosures before submission.
 
 ## Pre-existing code or assets
 
-- None. The project was generated with `flutter create` (Flutter 3.47.6 template) during the build window.
+- Earlier notes state that the project was generated with `flutter create` (Flutter 3.47.6 template) during the build window; that timing is not independently established here.
 - `TANDA_SPEC.md` (planning doc, no code) was written by the team before coding started.
+- Bundled `assets/fonts/Caveat.ttf` has a notice in `assets/fonts/OFL.txt` identifying the Caveat Project Authors and SIL Open Font License 1.1.
+- Bundled grandma artwork consists of PNG layers and a static fallback in `assets/grandma/`, animated by `lib/ui/grandma/grandma_avatar.dart`. The repository does not provide character authorship, license, source-generation files, or creation-date evidence; these remain to be confirmed. Do not describe the current app as containing no pre-existing assets.
 
 ## Models
 
@@ -33,6 +35,7 @@ Models are not in the APK. Two ways to install them: (1) the optional in-app dow
 | permission_handler | 13.0.2 | Microphone permission |
 | path_provider | 2.1.6 | App storage paths for audio, DB, models |
 | flutter_riverpod | 3.4.3 | State management / service injection |
+| flutter_localizations | Flutter SDK | English/Tagalog interface localization support |
 | wakelock_plus | 1.8.1 | Keeps screen awake during demo |
 | uuid | 4.6.0 | Stable `uid` per memory |
 | path | 1.9.1 | Path joining |
@@ -41,13 +44,14 @@ Models are not in the APK. Two ways to install them: (1) the optional in-app dow
 | file_picker | 13.1.0 | System file picker for importing model files (no network) |
 | llamadart | 0.10.0 | llama.cpp binding (GGUF inference with GBNF grammar, in a worker isolate). Its build hook downloads prebuilt llama.cpp binaries from https://github.com/leehack/llamadart-native at **build time only**; configured for Android arm64 CPU backend only. MIT. |
 | drift_dev (dev) | 2.35.1 | drift code generation |
-| build_runner (dev) | 2.16.1 | Code generation runner |
+| build_runner (dev) | 2.16.2 | Code generation runner |
 | flutter_lints (dev) | 6.0.0 | Lints (Flutter template default) |
 
 ## APIs and cloud services
 
-Hugging Face (huggingface.co and its CDN), **only** for the optional, user-started model download. The app requests the `INTERNET` permission for this alone. No other network calls: speech, LLM, embeddings, storage and retrieval run on the phone, and the app works in airplane mode once models are present. Manual import needs no internet in the app at all.
+Hugging Face (huggingface.co and its CDN), **only** for the optional, user-started model download. The app requests the `INTERNET` permission for this alone. Current application network code is confined to that downloader. Speech, LLM extraction/cleanup, SQLite storage and structured retrieval are local; embedding inference is not connected. Manual import needs no internet in the app. Full airplane-mode acceptance results are not recorded in `MEASUREMENTS.md`; local code paths alone do not certify the phone test.
 
 ## AI development tools
 
 - Devin (Cognition), pair programming in the IDE.
+- Codex (OpenAI), code/UI and documentation assistance in this checkout. The team must confirm whether this tool list is exhaustive.

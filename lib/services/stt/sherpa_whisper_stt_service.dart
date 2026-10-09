@@ -95,7 +95,7 @@ class SherpaWhisperSttService implements SttService {
           );
           appLog.i(
             'STT run: audio ${r.audioMs} ms, transcribe ${r.elapsedMs} ms, '
-            'text="${r.text}"',
+            'textChars=${r.text.length}, hasText=${r.text.isNotEmpty}',
           );
           c.complete(r);
         }

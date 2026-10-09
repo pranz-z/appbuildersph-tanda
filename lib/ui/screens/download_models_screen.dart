@@ -1,9 +1,12 @@
+import '../localization.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/model_download_controller.dart';
 import '../../core/model_downloader.dart';
 import '../nav.dart';
+import '../notebook_theme.dart';
 
 /// Optional downloader. Nothing is fetched until the user taps Download.
 class DownloadModelsScreen extends ConsumerStatefulWidget {
@@ -38,11 +41,16 @@ class _DownloadModelsScreenState extends ConsumerState<DownloadModelsScreen> {
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Download models')),
+      appBar: AppBar(title: const UiText('Download models')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const Text(
+          const NotebookHeader(
+            title: 'On-device models',
+            subtitle: 'Download once. Keep the models on your device.',
+            icon: Icons.download_outlined,
+          ),
+          const UiText(
             'Internet is needed only to download the models (once). After '
             'that, Tanda works fully offline, including in airplane mode. '
             'Files are saved in the app\'s private storage.\n'
@@ -52,15 +60,15 @@ class _DownloadModelsScreenState extends ConsumerState<DownloadModelsScreen> {
           if (!_planned)
             const LinearProgressIndicator()
           else if (s.files.isEmpty || s.finished)
-            Text(
+            UiText(
               'Kumpleto na / All required models are present.',
               style: TextStyle(
-                color: Colors.green.shade700,
+                color: theme.colorScheme.primary,
                 fontWeight: FontWeight.bold,
               ),
             )
           else ...[
-            Text(
+            UiText(
               s.running
                   ? 'Nagda-download... / Downloading'
                   : 'To download: ${formatMb(toFetch)}'
@@ -71,19 +79,19 @@ class _DownloadModelsScreenState extends ConsumerState<DownloadModelsScreen> {
             LinearProgressIndicator(
               value: s.totalBytes == 0 ? null : s.receivedBytes / s.totalBytes,
             ),
-            Text('${formatMb(s.receivedBytes)} / ${formatMb(s.totalBytes)}'),
+            UiText('${formatMb(s.receivedBytes)} / ${formatMb(s.totalBytes)}'),
             const SizedBox(height: 12),
             if (s.running)
               OutlinedButton.icon(
                 onPressed: ctrl.cancel,
                 icon: const Icon(Icons.stop),
-                label: const Text('Cancel'),
+                label: const UiText('Cancel'),
               )
             else
               FilledButton.icon(
                 onPressed: ctrl.start,
                 icon: const Icon(Icons.download),
-                label: Text(
+                label: UiText(
                   s.error == null
                       ? 'Download ${formatMb(toFetch)}'
                       : 'Subukan muli / Retry (${formatMb(toFetch)})',
@@ -96,14 +104,25 @@ class _DownloadModelsScreenState extends ConsumerState<DownloadModelsScreen> {
               color: theme.colorScheme.errorContainer,
               child: Padding(
                 padding: const EdgeInsets.all(12),
-                child: SelectableText(s.error!),
+                child: UiText(switch (s.errorKind) {
+                  DownloadErrorKind.insufficientStorage =>
+                    'Not enough storage. Free some space and retry.',
+                  DownloadErrorKind.offline =>
+                    'The connection stopped. Reconnect and retry to resume.',
+                  DownloadErrorKind.integrity => 'The model file did not pass verification. Download it again.',
+                  DownloadErrorKind.resumeUnsupported =>
+                    'The server could not resume the file. Retry the download.',
+                  DownloadErrorKind.cancelled =>
+                    'Download cancelled. You can resume later.',
+                  _ => 'Download could not finish. Check your connection and storage, then retry.',
+                }),
               ),
             ),
           ],
           const SizedBox(height: 12),
           for (final f in s.files) _fileRow(f, theme),
           const Divider(height: 32),
-          const Text(
+          const UiText(
             'Downloads continue if you leave this screen. If the app is '
             'closed or the connection drops, tap Download again to resume.',
           ),
@@ -111,7 +130,7 @@ class _DownloadModelsScreenState extends ConsumerState<DownloadModelsScreen> {
           OutlinedButton.icon(
             onPressed: s.running ? null : () => openImportModels(context),
             icon: const Icon(Icons.file_open),
-            label: const Text('Import models instead (from Downloads)'),
+            label: const UiText('Import models instead (from Downloads)'),
           ),
         ],
       ),
@@ -122,7 +141,7 @@ class _DownloadModelsScreenState extends ConsumerState<DownloadModelsScreen> {
     final (icon, color, label) = switch (f.status) {
       FileDownloadStatus.done => (
         Icons.check_circle,
-        Colors.green,
+        theme.colorScheme.primary,
         'Tapos / Done',
       ),
       FileDownloadStatus.downloading => (
@@ -159,10 +178,10 @@ class _DownloadModelsScreenState extends ConsumerState<DownloadModelsScreen> {
                 : f.received / f.spec.size,
           ),
           Text(
-            '$label · ${formatMb(f.received)} / ${formatMb(f.spec.size)}'
-            '${f.spec.sha256 == null ? ' · size check only' : ''}'
-            '${f.note == null ? '' : '\n${f.note}'}',
+            '${tr(context, label)} · ${formatMb(f.received)} / ${formatMb(f.spec.size)}',
           ),
+          if (f.spec.sha256 == null) const UiText('Size check only'),
+          if (f.note != null) const UiText('See the debug log for details.'),
         ],
       ),
     );

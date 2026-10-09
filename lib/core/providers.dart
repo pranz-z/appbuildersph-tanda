@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'app_database.dart';
 import '../services/audio/recorder_service.dart';
 import '../services/embedding/embedding_service.dart';
 import '../services/llm/extractor.dart';
@@ -9,10 +10,25 @@ import '../services/llm/llm_service.dart';
 import '../services/stt/sherpa_whisper_stt_service.dart';
 import '../services/stt/stt_service.dart';
 import 'app_log.dart';
+import 'session_usage.dart';
 import 'memory_info.dart';
 import 'model_locator.dart';
 
 final modelLocatorProvider = Provider((ref) => ModelLocator());
+
+final appDatabaseProvider = Provider<AppDatabase>((ref) {
+  final database = AppDatabase();
+  ref.onDispose(database.close);
+  return database;
+});
+
+final savedMemoriesProvider = FutureProvider((ref) {
+  return ref.watch(appDatabaseProvider).allMemories();
+});
+
+final openLoopsProvider = FutureProvider((ref) {
+  return ref.watch(appDatabaseProvider).openLoops();
+});
 
 /// Whisper language: 'tl' (Tagalog), 'en', or '' (auto-detect).
 class SttLanguage extends Notifier<String> {
@@ -37,7 +53,12 @@ final sttServiceProvider = FutureProvider<SttService>((ref) async {
   }
   final paths = check.paths!;
   final stt = SherpaWhisperSttService(paths, language: language);
-  ref.onDispose(stt.dispose);
+  final meteredStt = MeteredSttService(
+    stt,
+    onCall: () =>
+        ref.read(sessionUsageProvider.notifier).recordTranscriptionCall(),
+  );
+  ref.onDispose(meteredStt.dispose);
   appLog.i(
     'Loading Whisper ${paths.variant.name} int8, '
     'lang=${language.isEmpty ? 'auto' : language}, '
@@ -50,10 +71,10 @@ final sttServiceProvider = FutureProvider<SttService>((ref) async {
     rethrow;
   }
   appLog.i('Whisper loaded in ${stt.loadMs} ms');
-  return stt;
+  return meteredStt;
 }, retry: (_, _) => null);
 
-final recorderServiceProvider = Provider((ref) {
+final recorderServiceProvider = Provider<AudioCaptureRecorder>((ref) {
   final r = RecorderService();
   ref.onDispose(r.dispose);
   return r;
@@ -70,7 +91,11 @@ final llmServiceProvider = FutureProvider<LlmService>((ref) async {
     rethrow;
   }
   final llm = LlamadartLlmService(path);
-  ref.onDispose(llm.dispose);
+  final meteredLlm = MeteredLlmService(
+    llm,
+    onCall: () => ref.read(sessionUsageProvider.notifier).recordLlmCall(),
+  );
+  ref.onDispose(meteredLlm.dispose);
   appLog.i(
     'Loading LLM ${llmSpec.name}, threads=${llm.numThreads}, '
     'ctx=${llm.contextSize}, cpu only',
@@ -84,7 +109,7 @@ final llmServiceProvider = FutureProvider<LlmService>((ref) async {
   appLog.i(
     'LLM loaded in ${llm.loadMs} ms; memory: ${residentMemorySummary()}',
   );
-  return llm;
+  return meteredLlm;
 }, retry: (_, _) => null);
 
 final extractorProvider = FutureProvider<Extractor>((ref) async {
@@ -92,6 +117,9 @@ final extractorProvider = FutureProvider<Extractor>((ref) async {
   return Extractor(
     llm,
     promptTemplate: await rootBundle.loadString('assets/extract_prompt.txt'),
+    speechPromptTemplate: await rootBundle.loadString(
+      'assets/speech_extract_prompt.txt',
+    ),
     grammar: await rootBundle.loadString('assets/extract.gbnf'),
   );
 }, retry: (_, _) => null);

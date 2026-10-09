@@ -3,11 +3,16 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import 'core/app_log.dart';
 import 'core/memory_info.dart';
 import 'core/providers.dart';
+import 'core/ui_language.dart';
+import 'core/ui_theme.dart';
+import 'ui/localization.dart';
+import 'ui/notebook_theme.dart';
 import 'ui/screens/first_run_screen.dart';
 
 Future<void> main() async {
@@ -29,6 +34,8 @@ Future<void> main() async {
   // Keep the screen on during demos.
   WakelockPlus.enable();
   final container = ProviderContainer();
+  await container.read(uiLanguageProvider.notifier).load();
+  await container.read(uiThemeProvider.notifier).load();
   // Load models once at app start (in the background), never per request.
   // Whisper and the LLM load in parallel, each off the UI isolate.
   Future.wait([
@@ -46,15 +53,25 @@ Future<void> main() async {
   );
 }
 
-class TandaApp extends StatelessWidget {
+class TandaApp extends ConsumerWidget {
   const TandaApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Tanda',
-      theme: ThemeData(colorSchemeSeed: Colors.teal, useMaterial3: true),
-      home: const StartupGate(),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final language = ref.watch(uiLanguageProvider);
+    return LocalizationScope(
+      language: language,
+      child: MaterialApp(
+        title: 'Tanda',
+        theme: tandaTheme(),
+        darkTheme: tandaTheme(brightness: Brightness.dark),
+        themeMode: ref.watch(uiThemeProvider),
+        locale: Locale(language == AppLanguage.tagalog ? 'fil' : 'en'),
+        supportedLocales: const [Locale('en'), Locale('fil')],
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
+        builder: (context, child) => PaperBackdrop(child: child!),
+        home: const StartupGate(),
+      ),
     );
   }
 }

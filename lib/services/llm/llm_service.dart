@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class LlmResult {
   const LlmResult({
     required this.text,
@@ -42,12 +44,21 @@ class FakeLlmService implements LlmService {
     int maxTokens = 256,
   }) async {
     await Future<void>.delayed(const Duration(milliseconds: 300));
-    final text = grammar != null
+    var text = grammar != null
         ? '{"kind":"lent_item","person":"Kuya Jun","item":"drill",'
               '"place":null,"amount":null,"due_date_text":"sa Sabado",'
               '"evidence":"Hiniram ni Kuya Jun yung drill",'
               '"uncertain_fields":[]}'
         : 'Si Kuya Jun ang may hawak ng drill mo.';
+    if (grammar?.contains('understood') == true) {
+      final memory = jsonDecode(text) as Map<String, dynamic>;
+      memory['due_date_text'] = prompt.contains('Sabado') ? 'sa Sabado' : null;
+      text = jsonEncode({
+        'understood': true,
+        'cleaned_sentence': prompt,
+        'memory': memory,
+      });
+    }
     return LlmResult(text: text, elapsedMs: 300, generatedTokens: 40);
   }
 

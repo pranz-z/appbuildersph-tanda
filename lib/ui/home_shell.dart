@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
 import 'nav.dart';
-import 'screens/placeholder_screen.dart';
-import 'widgets/locality_meter_bar.dart';
+import 'localization.dart';
+import 'screens/nakabinbin_screen.dart';
+import 'screens/tanda_screen.dart';
 
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
@@ -14,70 +15,42 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   int _index = 0;
 
-  static const _screens = [
-    PlaceholderScreen(title: 'Tala', hint: 'Capture', icon: Icons.mic),
-    PlaceholderScreen(
-      title: 'Tanong',
-      hint: 'Ask',
-      icon: Icons.question_answer,
-    ),
-    PlaceholderScreen(
-      title: 'Nakabinbin',
-      hint: 'Open loops',
-      icon: Icons.pending_actions,
-    ),
-  ];
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tanda'),
+        title: const Text('tanda.'),
         actions: [
           IconButton(
-            tooltip: 'STT spike (debug)',
-            icon: const Icon(Icons.bug_report),
-            onPressed: () => openSttDebug(context),
-          ),
-          IconButton(
-            tooltip: 'LLM spike (debug)',
-            icon: const Icon(Icons.psychology),
-            onPressed: () => openLlmDebug(context),
-          ),
-          IconButton(
-            tooltip: 'Debug log',
-            icon: const Icon(Icons.article),
-            onPressed: () => openDebugLog(context),
+            tooltip: tr(context, 'Settings'),
+            icon: const Icon(Icons.tune_rounded),
+            onPressed: () => openSettings(context),
           ),
         ],
       ),
       body: SafeArea(
-        child: IndexedStack(index: _index, children: _screens),
+        child: IndexedStack(
+          index: _index,
+          children: [
+            TandaScreen(active: _index == 0),
+            const NakabinbinScreen(),
+          ],
+        ),
       ),
-      bottomNavigationBar: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const LocalityMeterBar(),
-          NavigationBar(
-            selectedIndex: _index,
-            onDestinationSelected: (i) => setState(() => _index = i),
-            destinations: const [
-              NavigationDestination(
-                icon: Icon(Icons.mic),
-                label: 'Tala',
-                tooltip: 'Capture',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.question_answer),
-                label: 'Tanong',
-                tooltip: 'Ask',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.pending_actions),
-                label: 'Nakabinbin',
-                tooltip: 'Open loops',
-              ),
-            ],
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _index,
+        onDestinationSelected: (i) => setState(() => _index = i),
+        destinations: [
+          NavigationDestination(
+            icon: const Icon(Icons.chat_bubble_outline_rounded),
+            selectedIcon: const Icon(Icons.chat_bubble_rounded),
+            label: 'Tanda',
+            tooltip: 'Tanda',
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.checklist_rounded),
+            label: tr(context, 'Open loops'),
+            tooltip: tr(context, 'Open loops'),
           ),
         ],
       ),

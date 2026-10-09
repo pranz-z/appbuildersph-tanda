@@ -1,3 +1,5 @@
+import '../localization.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -10,15 +12,15 @@ class DebugLogScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Debug log'),
+        title: const UiText('Debug log'),
         actions: [
           TextButton.icon(
             icon: const Icon(Icons.copy),
-            label: const Text('Copy'),
+            label: const UiText('Copy'),
             onPressed: () {
               Clipboard.setData(ClipboardData(text: appLog.dump()));
               ScaffoldMessenger.of(context)
-                  .showSnackBar(const SnackBar(content: Text('Log copied')));
+                  .showSnackBar(const SnackBar(content: UiText('Log copied')));
             },
           ),
         ],

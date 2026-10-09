@@ -1,3 +1,5 @@
+import '../localization.dart';
+
 import 'dart:convert';
 import 'dart:math';
 
@@ -129,15 +131,15 @@ class _LlmDebugScreenState extends ConsumerState<LlmDebugScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('LLM spike (debug)'),
+        title: const UiText('LLM spike (debug)'),
         actions: [
           IconButton(
-            tooltip: 'Import models',
+            tooltip: tr(context, 'Import models'),
             icon: const Icon(Icons.file_open),
             onPressed: () => openImportModels(context),
           ),
           IconButton(
-            tooltip: 'Debug log',
+            tooltip: tr(context, 'Debug log'),
             icon: const Icon(Icons.article),
             onPressed: () => openDebugLog(context),
           ),
@@ -151,22 +153,22 @@ class _LlmDebugScreenState extends ConsumerState<LlmDebugScreen> {
             children: [
               CircularProgressIndicator(),
               SizedBox(height: 12),
-              Text('Nilo-load ang LLM... / Loading model'),
+              UiText('Nilo-load ang LLM... / Loading model'),
             ],
           ),
         ),
         error: (e, _) => ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            SelectableText(
-              e.toString(),
+            UiText(
+              'Models are not ready. Check setup or use typed entry.',
               style: TextStyle(color: theme.colorScheme.error),
             ),
             const SizedBox(height: 16),
             FilledButton.icon(
               onPressed: () => openImportModels(context),
               icon: const Icon(Icons.file_open),
-              label: const Text('Import models'),
+              label: const UiText('Import models'),
             ),
           ],
         ),
@@ -177,8 +179,8 @@ class _LlmDebugScreenState extends ConsumerState<LlmDebugScreen> {
               controller: _input,
               minLines: 2,
               maxLines: 4,
-              decoration: const InputDecoration(
-                labelText: 'Transcript',
+              decoration: InputDecoration(
+                labelText: tr(context, 'Transcript'),
                 border: OutlineInputBorder(),
               ),
             ),
@@ -187,53 +189,55 @@ class _LlmDebugScreenState extends ConsumerState<LlmDebugScreen> {
               children: [
                 FilledButton(
                   onPressed: _busy ? null : () => _extractOne(ex),
-                  child: const Text('Extract'),
+                  child: const UiText('Extract'),
                 ),
                 const SizedBox(width: 8),
                 OutlinedButton(
                   onPressed: _busy ? null : () => _runBatch(ex),
-                  child: const Text('Run 15 test sentences'),
+                  child: const UiText('Run 15 test sentences'),
                 ),
               ],
             ),
             if (_busy) ...[
               const SizedBox(height: 8),
               const LinearProgressIndicator(),
-              Text(_batchProgress.isEmpty ? 'Running...' : _batchProgress),
+              UiText(_batchProgress.isEmpty ? 'Running...' : _batchProgress),
             ],
             if (_error != null)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
-                child: SelectableText(
-                  _error!,
+                child: UiText(
+                  'Something went wrong. Your entry is still here; try again.',
                   style: TextStyle(color: theme.colorScheme.error),
                 ),
               ),
             if (_last case final r?) ...[
               const Divider(height: 24),
-              Text(
+              UiText(
                 '${r.llm.elapsedMs} ms · prompt ${r.llm.promptTokens} tok · '
                 'gen ${r.llm.generatedTokens} tok · '
                 '${r.llm.tokensPerSec.toStringAsFixed(1)} tok/s',
               ),
-              Text(
+              UiText(
                 r.parse.valid
                     ? 'Schema: VALID'
                     : 'Schema: INVALID ${r.parse.errors}',
                 style: TextStyle(
-                  color: r.parse.valid ? Colors.green : theme.colorScheme.error,
+                  color: r.parse.valid
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.error,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              Text(
-                'Evidence in transcript: ${r.evidenceOk ? 'yes' : 'NO (low confidence)'}',
+              UiText(
+                'Evidence in transcript: ${tr(context, r.evidenceOk ? 'yes' : 'NO (low confidence)')}',
               ),
               const SizedBox(height: 8),
-              const Text('Raw output:'),
+              const UiText('Raw output:'),
               SelectableText(r.llm.text, style: mono),
               if (r.parse.json != null) ...[
                 const SizedBox(height: 8),
-                const Text('Parsed:'),
+                const UiText('Parsed:'),
                 SelectableText(
                   const JsonEncoder.withIndent('  ').convert(r.parse.json),
                   style: mono,
@@ -244,15 +248,15 @@ class _LlmDebugScreenState extends ConsumerState<LlmDebugScreen> {
               const Divider(height: 24),
               Row(
                 children: [
-                  const Expanded(child: Text('15-sentence results')),
+                  const Expanded(child: UiText('15-sentence results')),
                   TextButton.icon(
                     icon: const Icon(Icons.copy),
-                    label: const Text('Copy'),
+                    label: const UiText('Copy'),
                     onPressed: () {
                       Clipboard.setData(ClipboardData(text: rep));
                       ScaffoldMessenger.of(
                         context,
-                      ).showSnackBar(const SnackBar(content: Text('Copied')));
+                      ).showSnackBar(const SnackBar(content: UiText('Copied')));
                     },
                   ),
                 ],
