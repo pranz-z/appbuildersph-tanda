@@ -9,7 +9,12 @@ Kept current during the build. Everything here was added during the hackathon wi
 
 ## Models
 
-None integrated yet. Planned (spec section 6): Whisper small int8 (sherpa-onnx), 1.5B to 2B instruct Q4 GGUF (llama.cpp), multilingual-e5-small int8 (ONNX). Exact files and licenses get added here when chosen.
+| Model | Files | Source | License |
+|---|---|---|---|
+| OpenAI Whisper small (int8 ONNX export by sherpa-onnx / k2-fsa) | `small-encoder.int8.onnx`, `small-decoder.int8.onnx`, `small-tokens.txt` | https://huggingface.co/csukuangfj/sherpa-onnx-whisper-small (also in https://github.com/k2-fsa/sherpa-onnx/releases/tag/asr-models) | Whisper: MIT (OpenAI) |
+| Fallback: Whisper base (same export) | `base-encoder.int8.onnx`, `base-decoder.int8.onnx`, `base-tokens.txt` | https://huggingface.co/csukuangfj/sherpa-onnx-whisper-base | MIT |
+
+Still planned: 1.5B to 2B instruct Q4 GGUF (llama.cpp), multilingual-e5-small int8 (ONNX).
 
 ## Flutter / Dart packages (exact pinned versions)
 

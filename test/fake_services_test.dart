@@ -7,7 +7,7 @@ import 'package:tanda/services/stt/stt_service.dart';
 
 void main() {
   test('fake STT returns a transcript', () async {
-    expect(await FakeSttService().transcribeFile('x.wav'), isNotEmpty);
+    expect((await FakeSttService().transcribeFile('x.wav')).text, isNotEmpty);
   });
 
   test('fake LLM returns parseable JSON when a grammar is given', () async {

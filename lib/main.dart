@@ -2,13 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
+import 'core/providers.dart';
 import 'ui/home_shell.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   // Keep the screen on during demos.
   WakelockPlus.enable();
-  runApp(const ProviderScope(child: TandaApp()));
+  final container = ProviderContainer();
+  // Load models once at app start (in the background), never per request.
+  container.read(sttServiceProvider);
+  runApp(
+    UncontrolledProviderScope(container: container, child: const TandaApp()),
+  );
 }
 
 class TandaApp extends StatelessWidget {

@@ -28,8 +28,7 @@ class FakeEmbeddingService implements EmbeddingService {
   Future<Float32List> embedQuery(String text) async => _vec('query: $text');
 
   @override
-  Future<Float32List> embedPassage(String text) async =>
-      _vec('passage: $text');
+  Future<Float32List> embedPassage(String text) async => _vec('passage: $text');
 
   Float32List _vec(String text) {
     final rnd = Random(text.hashCode);

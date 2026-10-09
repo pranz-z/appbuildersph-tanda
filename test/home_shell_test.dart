@@ -3,8 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tanda/ui/home_shell.dart';
 
 void main() {
-  testWidgets('shell shows three tabs and switches between them',
-      (tester) async {
+  testWidgets('shell shows three tabs and switches between them', (
+    tester,
+  ) async {
     await tester.pumpWidget(const MaterialApp(home: HomeShell()));
 
     expect(find.text('Tala'), findsWidgets);
