@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'screens/debug_log_screen.dart';
+import 'screens/download_models_screen.dart';
 import 'screens/import_models_screen.dart';
 import 'screens/llm_debug_screen.dart';
 import 'screens/stt_debug_screen.dart';
@@ -10,6 +11,9 @@ void _push(BuildContext context, Widget screen) =>
 
 void openImportModels(BuildContext context) =>
     _push(context, const ImportModelsScreen());
+
+void openDownloadModels(BuildContext context) =>
+    _push(context, const DownloadModelsScreen());
 
 void openDebugLog(BuildContext context) =>
     _push(context, const DebugLogScreen());

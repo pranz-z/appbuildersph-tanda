@@ -15,23 +15,29 @@ Output: `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk` (signed with t
 
 ## Models (not in the APK)
 
-The app uses no network at runtime and does not download anything itself. Download these once on the phone (or copy them over) into **Downloads**:
+Models are never bundled in the APK. There are two ways to get them onto the phone; both put the files in the app's private storage (no storage permission) and the app treats them identically (a file only counts as present if its size matches the table below).
 
-| File | Download |
-|---|---|
-| `small-encoder.int8.onnx` (112 MB) | https://huggingface.co/csukuangfj/sherpa-onnx-whisper-small/resolve/main/small-encoder.int8.onnx |
-| `small-decoder.int8.onnx` (262 MB) | https://huggingface.co/csukuangfj/sherpa-onnx-whisper-small/resolve/main/small-decoder.int8.onnx |
-| `small-tokens.txt` | https://huggingface.co/csukuangfj/sherpa-onnx-whisper-small/resolve/main/small-tokens.txt |
-| `base-encoder.int8.onnx` (29 MB, optional fallback) | https://huggingface.co/csukuangfj/sherpa-onnx-whisper-base/resolve/main/base-encoder.int8.onnx |
-| `base-decoder.int8.onnx` (131 MB, optional fallback) | https://huggingface.co/csukuangfj/sherpa-onnx-whisper-base/resolve/main/base-decoder.int8.onnx |
-| `base-tokens.txt` (optional fallback) | https://huggingface.co/csukuangfj/sherpa-onnx-whisper-base/resolve/main/base-tokens.txt |
-| `qwen2.5-1.5b-instruct-q4_k_m.gguf` (1.12 GB, LLM) | https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf |
-| `model_int8.onnx` (118 MB, embeddings) | https://huggingface.co/Xenova/multilingual-e5-small/resolve/main/onnx/model_int8.onnx |
-| `tokenizer.json` (17 MB, embeddings) | https://huggingface.co/Xenova/multilingual-e5-small/resolve/main/tokenizer.json |
+**Option A, in-app download (needs internet once):** on the first-run check tap **Download models**. Nothing downloads until you tap the Download button, which shows the total size. Only missing or incomplete files are fetched, one at a time, with per-file and overall progress. Cancel at any time; if you cancel, close the app or lose the connection, tap Download again to resume from the saved `.part` file (HTTP Range). Each file is checked for its exact size and, where Hugging Face publishes one, its SHA-256 before it is marked ready. The required set (Whisper small, LLM, e5) is about 1.63 GB; keep ~1.8 GB free.
 
-Total for everything (with the base fallback): about 1.8 GB. Make sure the phone has at least ~2 GB free during import (picked files are moved, not duplicated, but the source copies stay in Downloads until you delete them).
+**Option B, manual import (no internet in the app):** download the files below into **Downloads** (browser or laptop), then tap **Import models** and select them (long-press to multi-select). Browser duplicates like `small-tokens (1).txt` are accepted.
 
-Then in the app: **Import models** (shown on first run, or from the debug screen) > select the files (long-press to multi-select). The checklist shows which files are present. Files keep their exact names; browser duplicates like `small-tokens (1).txt` are accepted. Models are stored in the app's private internal storage (no storage permission needed).
+Internet is used only by the optional downloader. After the models are present, the app works fully offline (airplane mode).
+
+All URLs are pinned to a Hugging Face commit, so the files cannot change underneath the app.
+
+| File | Bytes | SHA-256 verified | URL |
+|---|---|---|---|
+| `small-encoder.int8.onnx` | 112,442,483 | yes | https://huggingface.co/csukuangfj/sherpa-onnx-whisper-small/resolve/8f3c18b358db4d1f2fc1eae49d75cd20989e4309/small-encoder.int8.onnx |
+| `small-decoder.int8.onnx` | 262,226,114 | yes | https://huggingface.co/csukuangfj/sherpa-onnx-whisper-small/resolve/8f3c18b358db4d1f2fc1eae49d75cd20989e4309/small-decoder.int8.onnx |
+| `small-tokens.txt` | 816,730 | size only (not in LFS) | https://huggingface.co/csukuangfj/sherpa-onnx-whisper-small/resolve/8f3c18b358db4d1f2fc1eae49d75cd20989e4309/small-tokens.txt |
+| `qwen2.5-1.5b-instruct-q4_k_m.gguf` | 1,117,320,736 | yes | https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/91cad51170dc346986eccefdc2dd33a9da36ead9/qwen2.5-1.5b-instruct-q4_k_m.gguf |
+| `model_int8.onnx` | 118,054,593 | yes | https://huggingface.co/Xenova/multilingual-e5-small/resolve/761b726dd34fb83930e26aab4e9ac3899aa1fa78/onnx/model_int8.onnx |
+| `tokenizer.json` | 17,082,730 | yes | https://huggingface.co/Xenova/multilingual-e5-small/resolve/761b726dd34fb83930e26aab4e9ac3899aa1fa78/tokenizer.json |
+| `base-encoder.int8.onnx` (optional fallback, import only) | 29,120,534 | yes | https://huggingface.co/csukuangfj/sherpa-onnx-whisper-base/resolve/bb53ee204431c90d314c1cc08d28d23e5b7927cc/base-encoder.int8.onnx |
+| `base-decoder.int8.onnx` (optional fallback, import only) | 130,672,026 | yes | https://huggingface.co/csukuangfj/sherpa-onnx-whisper-base/resolve/bb53ee204431c90d314c1cc08d28d23e5b7927cc/base-decoder.int8.onnx |
+| `base-tokens.txt` (optional fallback, import only) | 816,730 | size only | https://huggingface.co/csukuangfj/sherpa-onnx-whisper-base/resolve/bb53ee204431c90d314c1cc08d28d23e5b7927cc/base-tokens.txt |
+
+SHA-256 values are the Git LFS object IDs from the Hugging Face API at those commits (see `lib/core/model_locator.dart`). Import checks size only; the downloader checks size and SHA-256.
 
 The LLM prompt and grammar are plain text in `assets/extract_prompt.txt` and `assets/extract.gbnf` (rebuild after editing). `dart run tool/llm_desktop_check.dart <path-to-gguf>` runs the 15 test sentences on a laptop to check JSON validity (laptop timings are not phone measurements).
 

@@ -2,6 +2,8 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Only used by the optional, user-started model downloader. -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <application
         android:label="Tanda"
         android:largeHeap="true"

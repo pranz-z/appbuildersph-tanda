@@ -3,11 +3,14 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as p;
 
 import '../../core/app_log.dart';
+import '../../core/model_downloader.dart';
 import '../../core/model_importer.dart';
 import '../../core/model_locator.dart';
 import '../../core/providers.dart';
+import '../nav.dart';
 
 /// Imports sideloaded model files from the phone (e.g. Downloads) via the
 /// system file picker. No network.
@@ -89,8 +92,21 @@ class _ImportModelsScreenState extends ConsumerState<ImportModelsScreen> {
               }
             },
           );
-          appLog.i('Imported $target');
-          _messages.add('OK: $target');
+          final locator = ref.read(modelLocatorProvider);
+          if (await locator.find(target) == null) {
+            final got = File(p.join(await locator.primaryDir(), target));
+            final size = got.existsSync() ? got.lengthSync() : 0;
+            final expected = specByName(target)!.size;
+            appLog.i('Imported $target but size $size != $expected');
+            _messages.add(
+              'Hindi kumpleto / $target is ${formatMb(size)} but should be '
+              '${formatMb(expected)}. The file is incomplete or a different '
+              'version. Download it again, or use "Download models".',
+            );
+          } else {
+            appLog.i('Imported $target');
+            _messages.add('OK: $target');
+          }
         } catch (e, st) {
           appLog.e('Import failed for ${f.name}', e, st);
           _messages.add('Failed: ${f.name}: $e');
@@ -144,6 +160,11 @@ class _ImportModelsScreenState extends ConsumerState<ImportModelsScreen> {
             onPressed: _importing ? null : _pick,
             icon: const Icon(Icons.file_open),
             label: const Text('Pumili ng files / Select files'),
+          ),
+          TextButton.icon(
+            onPressed: _importing ? null : () => openDownloadModels(context),
+            icon: const Icon(Icons.download),
+            label: const Text('Or download them in the app (needs internet)'),
           ),
           if (_picking) ...[
             const SizedBox(height: 12),

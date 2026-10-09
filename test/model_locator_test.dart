@@ -14,6 +14,8 @@ void main() {
     locator = ModelLocator(
       primaryDirOverride: p.join(tmp.path, 'internal'),
       altDirOverride: p.join(tmp.path, 'external', 'models'),
+      // Fixtures are tiny; size enforcement has its own tests below.
+      checkSizes: false,
     );
   });
   tearDown(() => tmp.deleteSync(recursive: true));
@@ -41,7 +43,8 @@ void main() {
         c.errorMessage,
         contains(
           'https://huggingface.co/csukuangfj/sherpa-onnx-whisper-small/'
-          'resolve/main/small-encoder.int8.onnx',
+          'resolve/8f3c18b358db4d1f2fc1eae49d75cd20989e4309/'
+          'small-encoder.int8.onnx',
         ),
       );
       expect(c.errorMessage, contains('Import models'));
@@ -82,6 +85,44 @@ void main() {
     expect(s.length, modelManifest.length);
     expect(s.containsKey('qwen2.5-1.5b-instruct-q4_k_m.gguf'), isTrue);
     expect(s.containsKey('model_int8.onnx'), isTrue);
+  });
+
+  test('missingRequired: small Whisper set + LLM + e5 when empty', () async {
+    expect((await locator.missingRequired()).map((s) => s.name), [
+      ...names(WhisperVariant.small),
+      llmSpec.name,
+      'model_int8.onnx',
+      'tokenizer.json',
+    ]);
+    names(WhisperVariant.base).forEach(put);
+    expect((await locator.missingRequired()).map((s) => s.name), [
+      llmSpec.name,
+      'model_int8.onnx',
+      'tokenizer.json',
+    ]);
+  });
+
+  test('manifest URLs are pinned to commits and every spec has a size', () {
+    for (final s in modelManifest) {
+      expect(s.url, matches(RegExp(r'/resolve/[0-9a-f]{40}/')), reason: s.name);
+      expect(s.url, endsWith(s.name));
+      expect(s.size, greaterThan(0));
+      if (s.sha256 != null) {
+        expect(s.sha256, matches(RegExp(r'^[0-9a-f]{64}$')));
+      }
+    }
+  });
+
+  test('with size checks, a wrong-size file counts as missing '
+      '(imported and downloaded files are treated the same)', () async {
+    final strict = ModelLocator(
+      primaryDirOverride: p.join(tmp.path, 'internal'),
+    );
+    final size = specByName('small-tokens.txt')!.size;
+    put('small-tokens.txt', content: 'a' * (size - 1));
+    expect(await strict.find('small-tokens.txt'), isNull);
+    put('small-tokens.txt', content: 'a' * size);
+    expect(await strict.find('small-tokens.txt'), isNotNull);
   });
 
   group('ModelImporter', () {

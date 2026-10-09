@@ -63,6 +63,12 @@ class _StartupGateState extends ConsumerState<StartupGate> {
             ),
           const SizedBox(height: 16),
           FilledButton.icon(
+            onPressed: () => openDownloadModels(context),
+            icon: const Icon(Icons.download),
+            label: const Text('Download models (needs internet once)'),
+          ),
+          const SizedBox(height: 8),
+          FilledButton.tonalIcon(
             onPressed: () => openImportModels(context),
             icon: const Icon(Icons.file_open),
             label: const Text('Import models'),
