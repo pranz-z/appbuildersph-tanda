@@ -53,6 +53,21 @@ const uiTranslations = <String, (String, String)>{
     'Tanda has an answer (animation only)',
     'May sagot si Tanda (galaw lang, walang boses)',
   ),
+  'Tanda is speaking': ('Tanda is speaking', 'Nagsasalita si Tanda'),
+  'Replay': ('Replay', 'Ulitin'),
+  'No offline voice for this language — using another installed offline voice.':
+      (
+        'No offline voice for this language — using another installed offline voice.',
+        'Walang offline na boses para sa wikang ito — gagamit ng iba pang naka-install na offline na boses.',
+      ),
+  'No offline voice is installed — the answer is shown as text only.': (
+    'No offline voice is installed — the answer is shown as text only.',
+    'Walang naka-install na offline na boses — ipinapakita lang ang sagot bilang teksto.',
+  ),
+  'Speech is unavailable — the answer is shown as text only.': (
+    'Speech is unavailable — the answer is shown as text only.',
+    'Hindi magamit ang boses — ipinapakita lang ang sagot bilang teksto.',
+  ),
   'Speak to ask automatically, or type a question below.': (
     'Speak to ask automatically, or type a question below.',
     'Magsalita para awtomatikong magtanong, o isulat ang tanong sa ibaba.',

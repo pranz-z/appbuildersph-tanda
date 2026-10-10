@@ -8,6 +8,7 @@ import 'package:tanda/core/app_database.dart';
 import 'package:tanda/core/providers.dart';
 import 'package:tanda/services/audio/recorder_service.dart';
 import 'package:tanda/services/stt/stt_service.dart';
+import 'package:tanda/services/tts/tts_service.dart';
 import 'package:tanda/ui/screens/tanong_screen.dart';
 import 'package:tanda/ui/widgets/hold_to_talk_control.dart';
 
@@ -60,6 +61,7 @@ void main() {
           overrides: [
             recorderServiceProvider.overrideWithValue(recorder),
             sttServiceProvider.overrideWith((ref) async => stt),
+            ttsServiceProvider.overrideWithValue(FakeTtsService()),
             extractorProvider.overrideWith(
               (ref) => throw StateError('No extraction'),
             ),
@@ -154,6 +156,7 @@ void main() {
             appDatabaseProvider.overrideWithValue(db),
             recorderServiceProvider.overrideWithValue(recorder),
             sttServiceProvider.overrideWith((ref) async => stt),
+            ttsServiceProvider.overrideWithValue(FakeTtsService()),
             extractorProvider.overrideWith(
               (ref) => throw StateError('Tanong must not extract'),
             ),

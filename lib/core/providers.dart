@@ -9,8 +9,11 @@ import '../services/llm/llamadart_llm_service.dart';
 import '../services/llm/llm_service.dart';
 import '../services/stt/sherpa_whisper_stt_service.dart';
 import '../services/stt/stt_service.dart';
+import '../services/tts/flutter_tts_service.dart';
+import '../services/tts/tts_service.dart';
 import 'app_log.dart';
 import 'session_usage.dart';
+import 'ui_language.dart';
 import 'memory_info.dart';
 import 'model_locator.dart';
 
@@ -133,3 +136,14 @@ final embeddingFilesMissingProvider = FutureProvider<List<ModelFileSpec>>(
 final embeddingServiceProvider = Provider<EmbeddingService>(
   (ref) => FakeEmbeddingService(),
 );
+
+/// On-device text-to-speech for Tanong answers. Voice selection happens per
+/// utterance so the app-language switch and newly installed voices apply
+/// without a restart. Voices that need a network are never used.
+final ttsServiceProvider = Provider<TtsService>((ref) {
+  final service = FlutterTtsService(
+    preferTagalog: () => ref.read(uiLanguageProvider) == AppLanguage.tagalog,
+  );
+  ref.onDispose(service.dispose);
+  return service;
+});

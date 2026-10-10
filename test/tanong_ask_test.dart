@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tanda/core/app_database.dart';
 import 'package:tanda/core/providers.dart';
 import 'package:tanda/logic/local_memory_ask.dart';
+import 'package:tanda/services/tts/tts_service.dart';
 import 'package:tanda/ui/screens/tanong_screen.dart';
 
 void main() {
@@ -258,7 +259,10 @@ void main() {
       );
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [appDatabaseProvider.overrideWithValue(database)],
+          overrides: [
+            appDatabaseProvider.overrideWithValue(database),
+            ttsServiceProvider.overrideWithValue(FakeTtsService()),
+          ],
           child: const MaterialApp(home: Scaffold(body: TanongScreen())),
         ),
       );
@@ -277,6 +281,118 @@ void main() {
 
       expect(find.text('Hiniram ni Kuya Jun yung drill.'), findsOneWidget);
       expect(find.text('Audio is unavailable'), findsOneWidget);
+    },
+  );
+
+  test(
+    'reported bug: answers "Who borrowed the shovel?" from a confirmed lent_item',
+    () async {
+      await save(
+        uid: 'shovel',
+        kind: 'lent_item',
+        person: 'Jun',
+        item: 'shovel',
+        transcript: 'Jun borrowed the shovel.',
+      );
+
+      final result = await ask('Who borrowed the shovel?');
+
+      expect(result.kind, AskResultKind.answer);
+      expect(result.answer, contains('Jun'));
+      expect(result.matches.single.uid, 'shovel');
+    },
+  );
+
+  test('matches across word forms and languages (borrowed/hiniram)', () async {
+    await save(
+      uid: 'shovel-tl',
+      kind: 'lent_item',
+      person: 'Jun',
+      item: 'shovel',
+      transcript: 'Hiniram ni Jun ang shovel.',
+    );
+
+    final result = await ask('Who borrowed the shovel?');
+
+    expect(result.kind, AskResultKind.answer);
+    expect(result.matches.single.uid, 'shovel-tl');
+  });
+
+  test(
+    'finds a memory whose extracted fields are empty but whose transcript carries the evidence',
+    () async {
+      await save(
+        uid: 'shovel-bare',
+        kind: 'lent_item',
+        transcript: 'Jun borrowed the shovel.',
+      );
+
+      final result = await ask('Who borrowed the shovel?');
+
+      expect(result.kind, AskResultKind.answer);
+      expect(result.matches.single.uid, 'shovel-bare');
+    },
+  );
+
+  test(
+    'survives a mislabeled kind when the transcript carries the evidence',
+    () async {
+      await save(
+        uid: 'shovel-wrong-kind',
+        kind: 'item_location',
+        transcript: 'Jun borrowed the shovel.',
+      );
+
+      final result = await ask('Who borrowed the shovel?');
+
+      expect(result.kind, AskResultKind.answer);
+      expect(result.matches.single.uid, 'shovel-wrong-kind');
+    },
+  );
+
+  test(
+    'still says not-found for unrelated questions even with similar rows stored',
+    () async {
+      await save(
+        uid: 'shovel',
+        kind: 'lent_item',
+        person: 'Jun',
+        item: 'shovel',
+        transcript: 'Jun borrowed the shovel.',
+      );
+
+      final result = await ask('Nasaan ang passport ko?');
+
+      expect(result.kind, AskResultKind.notFound);
+      expect(result.answer, 'Wala akong nahanap.');
+    },
+  );
+
+  test(
+    'still offers choices between similarly plausible borrowed items',
+    () async {
+      await save(
+        uid: 'shovel-jun',
+        kind: 'lent_item',
+        person: 'Jun',
+        item: 'shovel',
+        transcript: 'Jun borrowed the shovel.',
+      );
+      await save(
+        uid: 'shovel-mia',
+        kind: 'lent_item',
+        person: 'Mia',
+        item: 'shovel',
+        transcript: 'Hiniram ni Mia yung shovel.',
+      );
+
+      final result = await ask('Sino ang humiram ng shovel?');
+
+      expect(result.kind, AskResultKind.ambiguous);
+      expect(
+        result.matches.map((memory) => memory.uid),
+        containsAll(['shovel-jun', 'shovel-mia']),
+      );
     },
   );
 

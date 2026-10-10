@@ -10,8 +10,10 @@ import 'package:just_audio/just_audio.dart';
 
 import '../../core/app_database.dart';
 import '../../core/providers.dart';
+import '../../logic/grounded_answer.dart';
 import '../../logic/local_memory_ask.dart';
 import '../../logic/speech_extraction.dart';
+import '../../services/tts/tts_service.dart';
 import '../widgets/hold_to_talk_control.dart';
 
 class TanongScreen extends ConsumerStatefulWidget {
@@ -21,11 +23,13 @@ class TanongScreen extends ConsumerStatefulWidget {
     this.embedded = false,
     this.onProcessingChanged,
     this.onAnswerChanged,
+    this.onSpeakingChanged,
   });
   final bool active;
   final bool embedded;
   final ValueChanged<bool>? onProcessingChanged;
   final ValueChanged<bool>? onAnswerChanged;
+  final ValueChanged<bool>? onSpeakingChanged;
 
   @override
   ConsumerState<TanongScreen> createState() => TanongScreenState();
@@ -44,6 +48,10 @@ class TanongScreenState extends ConsumerState<TanongScreen> {
   bool _voiceActive = false;
   int _questionRevision = 0;
   int _voiceRevision = 0;
+  TtsService? _tts;
+  int _speechGen = 0;
+  String? _voiceNotice;
+  bool _speaking = false;
 
   void _onVoiceActivity(bool active) {
     if (!mounted) return;
@@ -53,9 +61,49 @@ class TanongScreenState extends ConsumerState<TanongScreen> {
         _error = null;
         _result = null;
         widget.onAnswerChanged?.call(false);
+        _stopSpeech();
       }
       _voiceActive = active;
     });
+  }
+
+  void _onPlayback() {
+    final playing = _tts?.playback.value == TtsPlayback.speaking;
+    if (!mounted || playing == _speaking) return;
+    setState(() => _speaking = playing);
+    widget.onSpeakingChanged?.call(playing);
+  }
+
+  /// Speaks exactly the text shown in the answer card — template, verbatim
+  /// transcript quote, or validated grounded answer, whichever was rendered.
+  Future<void> _speak(String text) async {
+    final tts = _tts;
+    if (tts == null) return;
+    final generation = ++_speechGen;
+    TtsSpeakStatus status;
+    try {
+      status = await tts.speak(text);
+    } catch (_) {
+      status = TtsSpeakStatus.engineError;
+    }
+    if (!mounted || generation != _speechGen) return;
+    setState(() {
+      _voiceNotice = switch (status) {
+        TtsSpeakStatus.spoken => null,
+        TtsSpeakStatus.fallbackVoice =>
+          'No offline voice for this language — using another installed offline voice.',
+        TtsSpeakStatus.noOfflineVoice =>
+          'No offline voice is installed — the answer is shown as text only.',
+        TtsSpeakStatus.engineError =>
+          'Speech is unavailable — the answer is shown as text only.',
+      };
+    });
+  }
+
+  void _stopSpeech() {
+    _speechGen++;
+    _voiceNotice = null;
+    unawaited(_tts?.stop());
   }
 
   void _onQuestion(HoldToTalkResult capture, {bool autoAsk = false}) {
@@ -77,11 +125,20 @@ class TanongScreenState extends ConsumerState<TanongScreen> {
       _error = null;
       _result = null;
     });
+    _stopSpeech();
     if (autoAsk) unawaited(_ask(fromVoice: true));
   }
 
   @override
+  void didUpdateWidget(TanongScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!widget.active) _stopSpeech();
+  }
+
+  @override
   void dispose() {
+    _tts?.playback.removeListener(_onPlayback);
+    _stopSpeech();
     _questionController.dispose();
     super.dispose();
   }
@@ -104,10 +161,12 @@ class TanongScreenState extends ConsumerState<TanongScreen> {
     widget.onProcessingChanged?.call(true);
     try {
       final memories = await ref.read(appDatabaseProvider).confirmedMemories();
-      final result = _matcher.answer(question, memories);
+      var result = _matcher.answer(question, memories);
+      result = await _groundAnswer(question, result);
       if (mounted && widget.active && revision == _questionRevision) {
         setState(() => _result = result);
         widget.onAnswerChanged?.call(true);
+        await _speak(_presentAnswer(context, result));
       }
     } catch (error) {
       if (mounted && widget.active && revision == _questionRevision) {
@@ -121,14 +180,50 @@ class TanongScreenState extends ConsumerState<TanongScreen> {
     }
   }
 
+  /// Optional grounded rewrite: only for a single confident match whose own
+  /// kind agrees with the question. Not-found, ambiguous, and verbatim
+  /// fallback results never touch the LLM. Any generation or validation
+  /// failure keeps the deterministic template.
+  Future<LocalMemoryAskResult> _groundAnswer(
+    String question,
+    LocalMemoryAskResult result,
+  ) async {
+    if (result.kind != AskResultKind.answer ||
+        result.matches.length != 1 ||
+        result.verbatim) {
+      return result;
+    }
+    final llm = ref.read(llmServiceProvider).value;
+    if (llm == null) return result;
+    final generated = await GroundedAnswerer().answer(
+      llm: llm,
+      question: question,
+      memory: result.matches.single,
+    );
+    if (generated == null) return result;
+    return LocalMemoryAskResult(
+      kind: AskResultKind.answer,
+      answer: generated,
+      matches: result.matches,
+      verbatim: true,
+    );
+  }
+
   void _choose(StoredMemory memory) {
     setState(() => _result = _matcher.answerFor(memory));
     widget.onAnswerChanged?.call(true);
+    unawaited(_speak(_presentAnswer(context, _result!)));
   }
 
   @override
   Widget build(BuildContext context) {
     final stt = ref.watch(sttServiceProvider);
+    final tts = ref.watch(ttsServiceProvider);
+    if (!identical(tts, _tts)) {
+      _tts?.playback.removeListener(_onPlayback);
+      _tts = tts;
+      tts.playback.addListener(_onPlayback);
+    }
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
@@ -148,6 +243,7 @@ class TanongScreenState extends ConsumerState<TanongScreen> {
             _result = null;
             _error = null;
             widget.onAnswerChanged?.call(false);
+            _stopSpeech();
           }),
           decoration: InputDecoration(
             border: OutlineInputBorder(),
@@ -209,6 +305,32 @@ class TanongScreenState extends ConsumerState<TanongScreen> {
               ),
             ),
           ),
+          Row(
+            children: [
+              TextButton.icon(
+                key: const ValueKey('tanong-replay'),
+                // Re-render the shown answer so Replay always speaks exactly
+                // what is on screen (e.g. after an app-language switch).
+                onPressed: () =>
+                    unawaited(_speak(_presentAnswer(context, result))),
+                icon: const Icon(Icons.replay),
+                label: const UiText('Replay'),
+              ),
+              if (_speaking)
+                TextButton.icon(
+                  key: const ValueKey('tanong-stop'),
+                  onPressed: () => setState(_stopSpeech),
+                  icon: const Icon(Icons.stop),
+                  label: const UiText('Stop'),
+                ),
+            ],
+          ),
+          if (_voiceNotice != null)
+            UiText(
+              _voiceNotice!,
+              key: const ValueKey('tanong-voice-notice'),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
           for (final memory in result.matches)
             _MemoryCitation(
               key: ValueKey('citation-${memory.uid}'),
@@ -378,7 +500,9 @@ extension on String {
 
 // Presentation only; matching and citations still use the unchanged SQLite rows.
 String _presentAnswer(BuildContext context, LocalMemoryAskResult result) {
-  if (result.kind != AskResultKind.answer || result.matches.length != 1) {
+  if (result.kind != AskResultKind.answer ||
+      result.matches.length != 1 ||
+      result.verbatim) {
     return tr(context, result.answer);
   }
   final memory = result.matches.single;

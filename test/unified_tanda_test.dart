@@ -13,6 +13,7 @@ import 'package:tanda/services/audio/recorder_service.dart';
 import 'package:tanda/services/llm/extractor.dart';
 import 'package:tanda/services/llm/llm_service.dart';
 import 'package:tanda/services/stt/stt_service.dart';
+import 'package:tanda/services/tts/tts_service.dart';
 import 'package:tanda/ui/home_shell.dart';
 import 'package:tanda/ui/localization.dart';
 import 'package:tanda/ui/notebook_theme.dart';
@@ -96,11 +97,14 @@ void main() {
   late Recorder recorder;
   late Whisper stt;
   late Llm llm;
+  // Speech stays "in progress" so playback-driven states are observable.
+  late FakeTtsService tts;
   setUp(() {
     db = AppDatabase.forTesting(NativeDatabase.memory());
     recorder = Recorder();
     stt = Whisper();
     llm = Llm();
+    tts = FakeTtsService(autoComplete: false);
   });
   tearDown(() async {
     await db.close();
@@ -121,6 +125,7 @@ void main() {
           sessionTrafficBytesProvider.overrideWith((ref) => Stream.value(null)),
           recorderServiceProvider.overrideWithValue(recorder),
           sttServiceProvider.overrideWith((ref) async => stt),
+          ttsServiceProvider.overrideWithValue(tts),
           extractorProvider.overrideWith(
             (ref) async => Extractor(
               llm,
@@ -363,6 +368,7 @@ void main() {
             appDatabaseProvider.overrideWithValue(db),
             recorderServiceProvider.overrideWithValue(recorder),
             sttServiceProvider.overrideWith((ref) async => stt),
+            ttsServiceProvider.overrideWithValue(tts),
             networkStatusProvider.overrideWith(
               (ref) => Stream.value(NetworkStatus.offline),
             ),

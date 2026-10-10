@@ -25,13 +25,13 @@ class _TandaScreenState extends ConsumerState<TandaScreen> {
   _Action _action = _Action.tell;
   _Action? _owner;
   CapturePhase _phase = CapturePhase.idle;
-  bool _tellProcessing = false, _askProcessing = false, _answer = false;
+  bool _tellProcessing = false, _askProcessing = false, _speaking = false;
   bool get _processing => _tellProcessing || _askProcessing;
   GrandmaState get _grandma => _phase == CapturePhase.recording
       ? GrandmaState.listening
       : _phase != CapturePhase.idle || _processing
       ? GrandmaState.thinking
-      : _action == _Action.ask && _answer
+      : _speaking
       ? GrandmaState.speaking
       : GrandmaState.idle;
 
@@ -97,8 +97,7 @@ class _TandaScreenState extends ConsumerState<TandaScreen> {
                           GrandmaState.idle => 'Tanda is ready to listen',
                           GrandmaState.listening => 'Tanda is listening',
                           GrandmaState.thinking => 'Tanda is thinking',
-                          GrandmaState.speaking =>
-                            'Tanda has an answer (animation only)',
+                          GrandmaState.speaking => 'Tanda is speaking',
                         }),
                         child: TickerMode(
                           enabled: widget.active,
@@ -212,8 +211,8 @@ class _TandaScreenState extends ConsumerState<TandaScreen> {
                   onProcessingChanged: (value) {
                     if (mounted) setState(() => _askProcessing = value);
                   },
-                  onAnswerChanged: (value) {
-                    if (mounted) setState(() => _answer = value);
+                  onSpeakingChanged: (value) {
+                    if (mounted) setState(() => _speaking = value);
                   },
                 ),
               ],
